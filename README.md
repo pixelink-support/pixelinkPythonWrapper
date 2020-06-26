@@ -90,14 +90,6 @@ Tips and Tricks, and Gotchas
       buffer type allows Python wrapper to maintain similar efficiency as the Pixelink 4.0 API. Furthermore, the same
       data buffer instance can be passed from getNextFrame to formatImage function.
 
-* setPreviewSettings excluded arguments
-    - setPreviewSettings excluded use of hParent and childId equivalent parameters found in the Pixelink 4.0 API used on Windows. 
-      They conflict with setPreviewState and setPreviewStateEx functionality and thus, their use is omitted.
-
-* setPreviewState and setPreviewStateEx excluded argument
-    - setPreviewState and setPreviewStateEx excluded use of phWnd equivalent parameter found in the Pixelink 4.0 API.
-      See the comment of setPreviewSettings above for additional information.
-
 
 Code Samples
 ------------
