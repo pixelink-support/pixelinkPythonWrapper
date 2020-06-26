@@ -107,6 +107,7 @@ def run_preview_window_for(hCamera, seconds):
     # forward events onto it's handler on Windows.
     user32 = windll.user32
     msg = ctypes.wintypes.MSG()
+    pMsg = ctypes.byref(msg)
 
     # Start preview
     ret = PxLApi.setPreviewState(hCamera, PxLApi.PreviewState.START)
@@ -116,9 +117,9 @@ def run_preview_window_for(hCamera, seconds):
     
     # Run preview for a number of seconds by polling the message pump
     while seconds > previewTime:
-        if user32.PeekMessageW(byref(msg), 0, 0, 0, 1) != 0:            
-            user32.TranslateMessage(msg)
-            user32.DispatchMessageW(msg)
+        if user32.PeekMessageW(pMsg, 0, 0, 0, 1) != 0:            
+            user32.TranslateMessage(pMsg)
+            user32.DispatchMessageW(pMsg)
         previewTime = time.time() - startPreview
 
     # Stop preview

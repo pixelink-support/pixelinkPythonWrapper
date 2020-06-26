@@ -20,14 +20,15 @@ def control_preview_thread(hCamera):
     # forward events onto it's handler on Windows.
     user32 = windll.user32
     msg = ctypes.wintypes.MSG()
+    pMsg = ctypes.byref(msg)
 
     # Start the preview (NOTE: camera must be streaming)
     ret = PxLApi.setPreviewState(hCamera, PxLApi.PreviewState.START)
     
     while (PxLApi.PreviewState.START == previewState and PxLApi.apiSuccess(ret[0])):
-        if user32.PeekMessageW(byref(msg), 0, 0, 0, 1) != 0:            
-            user32.TranslateMessage(msg)
-            user32.DispatchMessageW(msg)
+        if user32.PeekMessageW(pMsg, 0, 0, 0, 1) != 0:            
+            user32.TranslateMessage(pMsg)
+            user32.DispatchMessageW(pMsg)
     
     # Stop the preview
     ret = PxLApi.setPreviewState(hCamera, PxLApi.PreviewState.STOP)
@@ -43,14 +44,15 @@ def control_preview_thread_with_callback(hCamera):
     # forward events onto it's handler on Windows.
     user32 = windll.user32
     msg = ctypes.wintypes.MSG()
+    pMsg = ctypes.byref(msg)
 
     # Start the preview (NOTE: camera must be streaming)
     ret = PxLApi.setPreviewStateEx(hCamera, PxLApi.PreviewState.START, context, changeFunction)
     
     while (PxLApi.PreviewState.START == previewState and PxLApi.apiSuccess(ret[0])):
-        if user32.PeekMessageW(byref(msg), 0, 0, 0, 1) != 0:            
-            user32.TranslateMessage(msg)
-            user32.DispatchMessageW(msg)
+        if user32.PeekMessageW(pMsg, 0, 0, 0, 1) != 0:            
+            user32.TranslateMessage(pMsg)
+            user32.DispatchMessageW(pMsg)
     
     # Stop the preview
     ret = PxLApi.setPreviewStateEx(hCamera, PxLApi.PreviewState.STOP, context, changeFunction)
