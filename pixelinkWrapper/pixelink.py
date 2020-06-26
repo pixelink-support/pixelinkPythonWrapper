@@ -486,6 +486,7 @@ class PxLApi:
         WS_CAPTION = 12582912       # 0x00C00000
         WS_OVERLAPPEDWINDOW = WS_OVERLAPPED|WS_MAXIMIZEBOX|WS_MINIMIZEBOX|WS_THICKFRAME|WS_SYSMENU|WS_CAPTION
         WS_VISIBLE = 268435456      # 0x10000000
+        WS_CHILD = 1073741824       # 0x40000000
     
     """
     ReturnCode class contains Pixelink API error code defines.
@@ -1229,46 +1230,35 @@ class PxLApi:
         rc = PxLApi._Api.PxLSetFeature(hCamera, featureId, flags, ctNumParams, byref(ctaParams))
         return (rc,)
 
-    """
-    setPreviewSettings excluded hParent and childId equivalent parameters found in Pixelink 4.0 API
-    used on Windows. They conflict with setPreviewState and setPreviewStateEx functionality and thus,
-    their use is omitted.
-    """
     def setPreviewSettings(hCamera, title="Pixelink Preview", style=WindowsPreview.WS_OVERLAPPEDWINDOW|WindowsPreview.WS_VISIBLE, 
-                           left=0, top=0, width=640, height=480):
+                           left=0, top=0, width=640, height=480, parent=0):
         ctaTitle = (c_char * len(title))()
         ctaTitle.value = bytes(title, 'utf-8')
-        cthParent = c_void_p(None) # this parameter is not used in the Python wrapper
         ctChildId = 0 # this parameter is not used in the Python wrapper
-        if os.name != 'nt':
+        if os.name == 'nt':
+            cthParent = c_void_p(parent) # Windows can accomodate preview as a child window
+        else:
+            cthParent = c_void_p(None) # Child windows not defined on Linux
             style = 0 # is used on Linux
         rc = PxLApi._Api.PxLSetPreviewSettings(hCamera, ctaTitle.value, style, left, top, width, height, cthParent, ctChildId)
         return (rc,)
 
-    """
-    setPreviewState excluded use of phWnd equivalent parameter found in Pixelink 4.0 API.
-    See the comment of setPreviewSettings for additional information.
-    """
     def setPreviewState(hCamera, previewState):
-        cthWnd = c_void_p(None) # this parameter is not used in the Python wrapper
+        cthWnd = c_void_p(None)
         rc = PxLApi._Api.PxLSetPreviewState(hCamera, previewState, byref(cthWnd))
         if(not(PxLApi.apiSuccess(rc))):
             return (rc,)
-        return (rc,)
+        return (rc, cthWnd.value)
 
-    """
-    setPreviewStateEx excluded use of phWnd equivalent parameter found in native Pixelink API.
-    See the comment of setPreviewSettings for additional information.
-    """
     def setPreviewStateEx(hCamera, previewState, context, changeFunction):
-        cthWnd = c_void_p(None) # this parameter is not used in the Python wrapper
+        cthWnd = c_void_p(None)
         _ctPxLSetPreviewStateEx = PxLApi._Api.PxLSetPreviewStateEx
         _ctPxLSetPreviewStateEx.argtypes = c_uint, c_uint, c_void_p, c_void_p, PxLApi._changeFunction
         _ctPxLSetPreviewStateEx.restype = c_int
         rc = _ctPxLSetPreviewStateEx(hCamera, previewState, byref(cthWnd), context, changeFunction)
         if(not(PxLApi.apiSuccess(rc))):
             return (rc,)
-        return (rc,)
+        return (rc, cthWnd.value)
         
     def setStreamState(hCamera, streamState):
         rc = PxLApi._Api.PxLSetStreamState(hCamera, streamState)
