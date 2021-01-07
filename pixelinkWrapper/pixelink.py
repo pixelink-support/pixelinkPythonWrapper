@@ -35,7 +35,7 @@ few minor limitations, so the regular documentation should suffice for most user
 Those limitations are documented throughout the wrapper source code.
 
 This wrapper supports all Pixelink cameras that use and are compatible with the 
-Pixelink 4.0 API (that is, FireWire, USB, USB3 and Gigabit Ethernet cameras). 
+Pixelink 4.0 API (that is FireWire, USB, USB3, GigE, and 10 GigE cameras). 
 The wrapper fully supports functionality of the auto-focus, gain HDR, and polar 
 cameras, as well as camera operation with Navitar zoom systems.
 """
@@ -57,9 +57,6 @@ class PxLApi:
         # Pixelink registry key is not present exception
         pass
 
-    class _PxlApiVersionError(Exception):
-        pass
-
     if os.name == 'nt': # on Windows
         ## Queries Pixelink registry key
         _regApiCommand = ["REG", "QUERY", "HKEY_CURRENT_USER\\Software\\PixeLINK", "/ve"]
@@ -73,7 +70,7 @@ class PxLApi:
         _Api = WinDLL("PxLAPI40.dll")
 
         ## Verifies that the loaded Pixelink API version is supported
-        _minApiVersion = b"4.2.4.12" # minimum Pixelink API version supported
+        _minApiVersion = b"4.2.5.11" # minimum Pixelink API version supported
         # Finds Pixelink API full path
         _pxlApiPath = util.find_library("PxLAPI40.dll")
         _pxlApiList = _pxlApiPath.split("\\")
@@ -84,23 +81,27 @@ class PxLApi:
         _curApiVersion = subprocess.check_output(_wmicCommand).strip(b"Version \r\n")
         # Checks if the loaded Pixelink API is supported
         if _minApiVersion > _curApiVersion:
-            raise _PxlApiVersionError("This wrapper requires Pixelink API version 4.2.4.12 or above")
+            print("\nWARNING: Pixelink API Version %s detected. This Python wrapper was designed to\n" 
+                  "API Version 4.2.5.11 – upgrade to the latest Pixelink SDK for full functionality and\n"
+                  "performance.\n" % str(_curApiVersion, encoding='utf-8'))
 
     else: # on Linux
         ## Loads Pixelink API library
         _Api = CDLL('libPxLApi.so')
 
         ## Verifies that the loaded Pixelink API version is supported
-        _minApiVersion = b"libPxLApi.so.4.2.1.16" # minimum Pixelink API version supported
-        # Queries installed Pixelink API file and its full path from $LD_LIBRARY_PATH
-        _pxlApiSearch = "locate $LD_LIBRARY_PATH/libPxLApi.so."
+        _minApiVersion = b"4.2.2.3" # minimum Pixelink API version supported
+        # Searches for installed Pixelink API file and its full path from $PIXELINK_SDK_LIB
+        _pxlApiSearch = "find $PIXELINK_SDK_LIB -name 'libPxLApi.so.*'"
         _pxlApiPath = subprocess.check_output(_pxlApiSearch, shell=True).strip()
         # Finds current version of Pixelink API
         _pxlApiList = _pxlApiPath.split(b"/")
-        _curApiVersion = _pxlApiList[len(_pxlApiList)-1]
+        _curApiVersion = _pxlApiList[len(_pxlApiList)-1].strip(b"libPxLApi.so.")
         # Checks if the loaded Pixelink API is supported
         if _minApiVersion > _curApiVersion:
-            raise _PxlApiVersionError("This wrapper requires Pixelink API version 4.2.1.16 or above")
+            print("\nWARNING: Pixelink API Version %s detected. This Python wrapper was designed to\n" 
+                  "API Version 4.2.2.3 – upgrade to the latest Linux SDK for full functionality and performance.\n"
+                  % str(_curApiVersion, encoding='utf-8'))
 
     """
     Pixelink API class defines
@@ -162,7 +163,8 @@ class PxLApi:
         GAIN_HDR = 38
         POLAR_WEIGHTINGS = 39
         POLAR_HSV_INTERPRETATION = 40
-        TOTAL = 41
+        PTP = 41
+        TOTAL = 42
 
     class FeatureFlags:
         PRESENCE = 1
@@ -264,6 +266,7 @@ class PxLApi:
         FREE_RUNNING = 0
         SOFTWARE = 1
         HARDWARE = 2
+        ACTION = 3
 
     class Descriptors:
         MAX_STROBES = 16
@@ -344,6 +347,9 @@ class PxLApi:
         BUSY = 3
         FLASH = 4
         INPUT = 5
+        ACTION_STROBE = 6
+        ACTION_NORMAL = 7
+        ACTION_PULSE = 8
 
     class GpioModeStrobe:
         DELAY = 3
@@ -446,6 +452,29 @@ class PxLApi:
         HSV_AS_ANGLE = 1
         HSV_AS_DEGREE = 2
 
+    class PtpParams:
+        MODE = 0
+        STATUS = 1
+        ACCURACY = 2
+        OFFSET_FROM_MASTER = 3
+        NUM_PARAMS = 4
+
+    class PtpModes:
+        DISABLED = 0
+        AUTOMATIC = 1
+        SLAVE_ONLY = 2
+
+    class PtpStatus:
+        INITIALIZING = 1
+        FAULTY = 2
+        DISABLED = 3
+        LISTENING = 4
+        PREMASTER = 5
+        MASTER = 6
+        PASSIVE = 7
+        UNCALIBRATED = 8
+        SLAVE = 9
+
     class ColorFilterArray:
         CFA_NONE = 0
         CFA_RGGB = 1
@@ -472,6 +501,26 @@ class PxLApi:
         FRAMERATE_CAPTURE = -1
         BITRATE_DEFAULT = 1000000
         DECIMATION_NONE = 1
+
+    class EventId:
+        ANY = 0
+        CAMERA_DISCONNECTED = 1
+        HW_TRIGGER_RISING_EDGE = 2
+        HW_TRIGGER_FALLING_EDGE = 3
+        GPI_RISING_EDGE = 4
+        GPI_FALLING_EDGE = 5
+        HW_TRIGGER_MISSED = 6
+        SYNCHRONIZED_TO_MASTER = 7
+        UNSYNCHRONIZED_FROM_MASTER = 8
+        FRAMES_SKIPPED = 9
+        LAST = 9
+
+    class ActionTypes:
+        FRAME_TRIGGER = 0
+        GPO1 = 1
+        GPO2 = 2
+        GPO3 = 3
+        GPO4 = 4
 
     """
     The following preview window defines are used on Windows, but not on Linux
@@ -506,6 +555,7 @@ class PxLApi:
         ApiSuccessWhiteBalanceTooBright = 8                     # 0x0000_0008
         ApiSuccessWithFrameLoss = 9                             # 0x0000_0009
         ApiSuccessGainIneffectiveWarning = 10                   # 0x0000_000A
+        ApiSuccessSuspectedFirewallBlockWarning = 11            # 0x0000_000B
         ApiUnknownError = -2147483647                           # 0x8000_0001
         ApiInvalidHandleError = -2147483646                     # 0x8000_0002
         ApiInvalidParameterError = -2147483645                  # 0x8000_0003
@@ -573,6 +623,11 @@ class PxLApi:
         ApiControllerCommunicationError = -1879048152           # 0x9000_0028
         ApiControllerTimeoutError = -1879048151                 # 0x9000_0029
         ApiBufferTooSmallForInterleavedError = -1879048150      # 0x9000_002A
+        ApiThisEventNotSupported = -1879048149                  # 0x9000_002B
+        ApiFeatureConflictError = -1879048148                   # 0x9000_002C
+        ApiGpiOnlyError = -1879048147                           # 0x9000_002D
+        ApiGpoOnlyError = -1879048146                           # 0x9000_002E
+        ApiInvokedFromIncorrectThreadError = -1879048145        # 0x9000_002F
 
     """
     The following Pixelink API classes represent wrapped structures.
@@ -626,7 +681,8 @@ class PxLApi:
                     ("IpEngineLoadVersionMinor", c_ubyte),
                     ("IpEngineLoadVersionSubminor", c_ubyte),
                     ("CameraProperties", c_ubyte),
-                    ("ControllingIpAddress", _IpAddress)]
+                    ("ControllingIpAddress", _IpAddress),
+                    ("CameraLinkSpeed", c_uint)]
     
     class _CameraInfo(Structure):
         _fields_ = [("VendorName", c_char * 33),
@@ -893,6 +949,8 @@ class PxLApi:
         _dataProcessFunction = WINFUNCTYPE(c_uint, c_uint, POINTER(c_ubyte), c_uint, POINTER(_FrameDesc), c_void_p)
         # setPreviewStateEx
         _changeFunction = WINFUNCTYPE(c_uint, c_uint, c_uint, c_void_p)
+        # setEventCallback
+        _eventProcessFunction = WINFUNCTYPE(c_uint, c_uint, c_uint, c_double, c_uint, POINTER(c_ubyte), c_void_p)
     else:
         # used on Linux
         # getClip and getEncodedClip
@@ -901,6 +959,8 @@ class PxLApi:
         _dataProcessFunction = CFUNCTYPE(c_uint, c_uint, POINTER(c_ubyte), c_uint, POINTER(_FrameDesc), c_void_p)
         # setPreviewStateEx
         _changeFunction = CFUNCTYPE(c_uint, c_uint, c_uint, c_void_p)
+        # setEventCallback
+        _eventProcessFunction = CFUNCTYPE(c_uint, c_uint, c_uint, c_double, c_uint, POINTER(c_ubyte), c_void_p)
 
     """ 
     Pixelink API functions
@@ -950,6 +1010,14 @@ class PxLApi:
         if(not(PxLApi.apiSuccess(rc))):
             return (rc,)
         return (rc, ctbDstImage)
+
+    def getActions(hCamera):
+        ctScheduledTimestamps = c_double(0)
+        ctNumberOfTimestamps = c_uint(0)
+        rc = PxLApi._Api.PxLGetActions(hCamera, byref(ctScheduledTimestamps), byref(ctNumberOfTimestamps))
+        if(not(PxLApi.apiSuccess(rc))):
+            return (rc,)
+        return (rc, ctScheduledTimestamps.value, ctNumberOfTimestamps.value)
 
     """
     getBytesPerPixel is often needed as a universal function in calculating the frame size. Hence, 
@@ -1023,6 +1091,17 @@ class PxLApi:
         if(not(PxLApi.apiSuccess(rc))):
             return (rc,)
         return (rc, ctCameraInfo)
+
+    def getCameraXml(hCamera):
+        ctBufferSize = c_uint(0)
+        rc = PxLApi._Api.PxLGetCameraXML(hCamera, None, byref(ctBufferSize))
+        if(not(PxLApi.apiSuccess(rc))):
+            return (rc,)
+        ctbXml = create_string_buffer(ctBufferSize.value)
+        rc = PxLApi._Api.PxLGetCameraXML(hCamera, byref(ctbXml), byref(ctBufferSize))
+        if(not(PxLApi.apiSuccess(rc))):
+            return (rc,)
+        return (rc, ctbXml)
         
     def getClip(hCamera, numberOfFramesToCapture, fileName, terminationFunction):
         ctafileName = (c_char * len(fileName))()
@@ -1177,6 +1256,11 @@ class PxLApi:
     def saveSettings(hCamera, channel):
         rc = PxLApi._Api.PxLSaveSettings(hCamera, channel)
         return (rc,)
+
+    def setActions(actionType, scheduledTimestamp):
+        ctScheduledTimestamps = c_double(scheduledTimestamp)
+        rc = PxLApi._Api.PxLSetActions(actionType, ctScheduledTimestamps)
+        return (rc,)
     
     def setCallback(hCamera, callbackType, context, dataProcessFunction):        
         _ctPxLSetCallback = PxLApi._Api.PxLSetCallback
@@ -1218,6 +1302,18 @@ class PxLApi:
         ctaCameraName = (c_char * len(cameraName))()
         ctaCameraName.value = bytes(cameraName, 'utf-8')
         rc = PxLApi._Api.PxLSetCameraName(hCamera, ctaCameraName.value)
+        return (rc,)
+
+    def setEventCallback(hCamera, eventId, context, eventProcessFunction):
+        _ctPxLSetEventCallback = PxLApi._Api.PxLSetEventCallback
+        if 0 == eventProcessFunction or None == eventProcessFunction:
+            _ctPxLSetEventCallback.argtypes = c_uint, c_uint, c_void_p, c_uint
+            _ctPxLSetEventCallback.restype = c_int
+            rc = _ctPxLSetEventCallback(hCamera, eventId, context, 0)
+        else:
+            _ctPxLSetEventCallback.argtypes = c_uint, c_uint, c_void_p, PxLApi._eventProcessFunction
+            _ctPxLSetEventCallback.restype = c_int
+            rc = _ctPxLSetEventCallback(hCamera, eventId, context, eventProcessFunction)
         return (rc,)
 
     def setFeature(hCamera, featureId, flags, params):
