@@ -5,32 +5,49 @@ The Pixelink Python wrapper offers software developers a means to adapt existing
 for Pixelink cameras using Python on Windows and Linux. Since this is a wrapper around the native Pixelink API 4.0, it also allows 
 rapid development of custom applications for camera operation by simplifying the most common tasks associated with configuring 
 and controlling the cameras. This wrapper supports all Pixelink cameras that use and are compatible with the Pixelink 4.0 API 
-(that is, FireWire, USB, USB3 and Gigabit Ethernet cameras). The wrapper fully supports functionality of the auto-focus, gain HDR, 
+(that is, FireWire, USB, USB3, GigE, and 10 GigE cameras). The wrapper fully supports functionality of the auto-focus, gain HDR, 
 and polar cameras, as well as camera operation with Navitar zoom systems.
 
 
 Tested Platforms
 ----------------
 
-* Windows 10 (64-bit) with Pixelink SDK v10.6
-* Linux Ubuntu 18.04 PC (x86 64-bit) with Linux SDK v2.4
-* Python 3.9.2 (64-bit)
+* Windows 10 (64-bit) with Pixelink SDK v10.7
+* Linux Ubuntu 20.04 PC (x86 64-bit) with Linux SDK v3.0
+* Python 3.8.5 (64-bit)
 
 
 Installation
 ------------
 
-How to install the Pixelink Python wrapper
+The recommended procedure for installing the Pixelink Python wrapper package (pixelinkWrapper) is by using the pip(3) command,
+as detailed below. This command will install the latest pixelinkWrapper from this repository as maintained by Pixelink. 
+The Pixelink Python wrapper package (pixelinkWrapper) is also included in the Pixelink SDK as the local folder. It contains 
+the version of the pixelinkWrapper that was current as of the version of the Pixelink SDK release. Although that folder is not 
+necessary to install/use pixelinkWrapper, it is included as a convenience, should you need access to a non-current version of 
+the pixelinkWrapper, or need to install the pixelinkWrapper without online connectivity.
+
+The Pixelink Python wrapper is installed as follows (new installation):
 
 On Windows:
 1. Open https://pixelink.com/products/software/
 2. Download and install Pixelink Capture or Pixelink SDK
-3. Run pip install pixelinkWrapper
+3. Run "pip install pixelinkWrapper"
 
 On Linux:
 1. Open https://pixelink.com/products/software/sdk/
 2. Download and install Linux SDK
-3. Run pip install pixelinkWrapper
+3. Run "sudo apt install python3-pip" to install pip3, if it is not installed
+4. Run "pip3 install pixelinkWrapper"
+
+If you already have a version of the Pixelink Python wrapper installed, and simply want to update it to the latest version,
+that is done as follows:
+
+On Windows:
+1. Run "pip install pixelinkWrapper --upgrade" 
+
+On Linux:
+1. Run "pip3 install pixelinkWrapper --upgrade"
 
 
 General Information
