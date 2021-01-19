@@ -130,8 +130,8 @@ def main():
             if not os.path.exists("openCVSnapshot"):
                 os.makedirs("openCVSnapshot")
 
-            filepass = "openCVSnapshot/" + "snapshot.bmp"
-            retVal = cv2.imwrite(filepass, npFormatedImage)
+            filepath = "openCVSnapshot/" + "snapshot.bmp"
+            retVal = cv2.imwrite(filepath, npFormatedImage)
             if retVal:
                 print("Saved image to 'openCVSnapshot/snapshot.bmp'")
             else:

@@ -148,9 +148,9 @@ def save_image_to_file(fileName, formatedImage):
     if not os.path.exists("getSnapshot"):
         os.makedirs("getSnapshot")
 
-    filepass = "getSnapshot/" + fileName
+    filepath = "getSnapshot/" + fileName
     # Open a file for binary write
-    file = open(filepass, "wb")
+    file = open(filepath, "wb")
     if None == file:
         return FAILURE
     numBytesWritten = file.write(formatedImage)
@@ -208,13 +208,17 @@ def main():
                                 if SUCCESS == retVal:
                                     print("Saved image to 'getSnapshot/%s'" % filenameMono8)
                                 """
-
-    # Tell the camera we're done with it.
-    PxLApi.uninitialize(hCamera)
+    
+    retVal = get_snapshot(hCamera, PxLApi.ImageFormat.RAW_MONO8, filenameMono8)
+    if SUCCESS == retVal:
+        print("Saved image to 'getSnapshot/%s'" % filenameMono8)
 
     if SUCCESS != retVal:
         print("ERROR: Unable to capture an image")
         return FAILURE
+
+    # Tell the camera we're done with it.
+    PxLApi.uninitialize(hCamera)
 
     return SUCCESS
 
