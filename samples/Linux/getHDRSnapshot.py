@@ -217,9 +217,9 @@ def save_image_to_file(fileName, formatedImage):
     if not os.path.exists("getHDRSnapshot"):
         os.makedirs("getHDRSnapshot")
 
-    filepass = "getHDRSnapshot/" + fileName
+    filepath = "getHDRSnapshot/" + fileName
     # Open a file for binary write
-    file = open(filepass, "wb")
+    file = open(filepath, "wb")
     if None == file:
         return FAILURE
     numBytesWritten = file.write(formatedImage)

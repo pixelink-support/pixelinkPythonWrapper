@@ -243,9 +243,9 @@ def save_image_to_file(fileName, formatedImage):
     if not os.path.exists("getPolarSnapshot"):
         os.makedirs("getPolarSnapshot")
 
-    filepass = "getPolarSnapshot/" + fileName
+    filepath = "getPolarSnapshot/" + fileName
     # Open a file for binary write
-    file = open(filepass, "wb")
+    file = open(filepath, "wb")
     if None == file:
         return FAILURE
     numBytesWritten = file.write(formatedImage)
