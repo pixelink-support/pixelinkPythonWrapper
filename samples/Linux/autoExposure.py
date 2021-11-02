@@ -212,7 +212,7 @@ def print_exposure(hCamera):
     params = ret[2]
     exposure = round(params[0]*1000, 3)
     
-    print("\rExposure: %i milliseconds, Adjustment type: %s" % (exposure, adjustmentType), end="")
+    print("\rExposure: %6.1f milliseconds, Adjustment type: %s" % (exposure, adjustmentType), end="")
 
 
 def main():
@@ -249,7 +249,11 @@ def main():
 
     ret = PxLApi.setPreviewState(hCamera, PxLApi.PreviewState.START)
     if not(PxLApi.apiSuccess(ret[0])):
-        print("Could not start the preview! rc = %i" % ret[0])
+        if (ret[0] == PxLApi.ReturnCode.ApiNotSupportedOnLiteVersion):
+            print("This system is currently using the Lite variant of the Pixelink API,\n"
+                  "but this application requires the standard variant")
+        else:
+            print("Could not start the preview! rc = %i" % ret[0])
         PxLApi.setStreamState(hCamera, PxLApi.StreamState.STOP)
         PxLApi.uninitialize(hCamera)
         return 1

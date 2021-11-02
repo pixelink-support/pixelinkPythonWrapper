@@ -169,12 +169,12 @@ def main():
 
     # Get the snapshots and save them to a folder as files
     for i in range(5):
-        filenamePng = "image" + str(i) + ".png"
-        retVal = get_snapshot(hCamera, PxLApi.ImageFormat.PNG, filenamePng)
+        filenameJpg = "image" + str(i) + ".jpg"
+        retVal = get_snapshot(hCamera, PxLApi.ImageFormat.JPEG, filenameJpg)
         if SUCCESS == retVal:
-            print("Saved image to 'getMultipleSnapshots/%s'" % filenamePng)
+            print("Saved image to 'getMultipleSnapshots/%s'" % filenameJpg)
         else:
-            print("Could not save image to 'getMultipleSnapshots/%s'" % filenamePng)
+            print("Could not save image to 'getMultipleSnapshots/%s'" % filenameJpg)
         time.sleep(2)
 
     # Done capturing, so no longer need the camera streaming images.

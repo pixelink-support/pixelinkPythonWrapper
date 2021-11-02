@@ -55,6 +55,14 @@ def main():
 
         # Start the preview (NOTE: camera must be streaming)
         ret = PxLApi.setPreviewState(hCamera, PxLApi.PreviewState.START)
+        if ret[0] == PxLApi.ReturnCode.ApiNotSupportedOnLiteVersion:
+            print("ERROR: Api Lite detected -- this application requires the standard Pixelink API")
+            
+            # Clean up by stopping the stream and unitializing the camera
+            ret = PxLApi.setStreamState(hCamera, PxLApi.StreamState.STOP)
+            assert PxLApi.apiSuccess(ret[0]), "%i" % ret[0]
+            PxLApi.uninitialize(hCamera)
+            return 1
         assert PxLApi.apiSuccess(ret[0])
 
         time.sleep(5) # delay 5 seconds

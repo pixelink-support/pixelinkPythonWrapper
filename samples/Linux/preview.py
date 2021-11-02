@@ -17,6 +17,8 @@ def set_preview_state(hCamera):
     
     # Start the preview (NOTE: camera must be streaming)
     ret = PxLApi.setPreviewState(hCamera, PxLApi.PreviewState.START)
+    if ret[0] == PxLApi.ReturnCode.ApiNotSupportedOnLiteVersion:
+        return ret
     assert PxLApi.apiSuccess(ret[0]), "%i" % ret[0]
 
     # Run preview until the user presses a key....
@@ -26,6 +28,8 @@ def set_preview_state(hCamera):
     # Stop the preview
     ret = PxLApi.setPreviewState(hCamera, PxLApi.PreviewState.STOP)
     assert PxLApi.apiSuccess(ret[0]), "%i" % ret[0]
+
+    return ret
 
 """
 Start and stop preview using setPreviewStateEx with a callback function.
@@ -60,7 +64,15 @@ def main():
         assert PxLApi.apiSuccess(ret[0]), "%i" % ret[0]
 
         # Start and stop preview using setPreviewState
-        set_preview_state(hCamera)
+        ret = set_preview_state(hCamera)
+        if ret[0] == PxLApi.ReturnCode.ApiNotSupportedOnLiteVersion:
+            print("ERROR: Api Lite detected -- this application requires the standard Pixelink API")
+            
+            # Clean up by stopping the stream and unitializing the camera
+            ret = PxLApi.setStreamState(hCamera, PxLApi.StreamState.STOP)
+            assert PxLApi.apiSuccess(ret[0]), "%i" % ret[0]
+            PxLApi.uninitialize(hCamera)
+            return 1
 
         # Run preview with callback when the user presses a key
         print("Press any key to start preview with callback......")
