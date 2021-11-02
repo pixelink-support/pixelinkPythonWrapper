@@ -1,19 +1,19 @@
 Introduction
 ------------
 
-The Pixelink Python wrapper offers software developers a means to adapt existing programs, or develop new imaging applications 
-for Pixelink cameras using Python on Windows and Linux. Since this is a wrapper around the native Pixelink API 4.0, it also allows 
-rapid development of custom applications for camera operation by simplifying the most common tasks associated with configuring 
-and controlling the cameras. This wrapper supports all Pixelink cameras that use and are compatible with the Pixelink 4.0 API 
-(that is, FireWire, USB, USB3, GigE, and 10 GigE cameras). The wrapper fully supports functionality of the auto-focus, gain HDR, 
-and polar cameras, as well as camera operation with Navitar zoom systems.
+The Pixelink Python wrapper offers software developers a means to adapt existing programs, or develop new imaging applications
+for Pixelink cameras using Python on Windows and Linux. As a wrapper around the native Pixelink API 4.0, it provides the same
+easy to use interface that promotes rapid development of custom applications for camera operations as the native API, but with
+Python’s concise and powerful scripting capabilities. This wrapper supports all Pixelink cameras that use and are compatible with
+the Pixelink 4.0 API (that is, FireWire, USB, USB3, GigE, and 10 GigE cameras). The wrapper fully supports functionality of the
+auto-focus, gain HDR, and polar cameras, as well as camera operation with Navitar zoom systems.
 
 
 Tested Platforms
 ----------------
 
-* Windows 10 (64-bit) with Pixelink SDK v10.7
-* Linux Ubuntu 20.04 PC (x86 64-bit) with Linux SDK v3.0
+* Windows 10 (64-bit) with Pixelink SDK v11.0
+* Linux Ubuntu 20.04 PC (x86 64-bit) with Linux SDK v3.2
 * Python 3.8.5 (64-bit)
 
 
@@ -64,11 +64,13 @@ There is no Pixelink Python wrapper for the Pixelink 3.2 API since it is obsolet
 excluded.
 
 The Pixelink API functions are exposed as class methods of the PxLApi class and the Pixelink API defines are grouped as subclasses 
-with respect to their functionality in the pixelink module. 
+with respect to their functionality in the pixelink module.
 
 Many of the functions accept parameters with assigned arguments. However, several functions have parameter(s) set with default 
 value(s). They are
 * getFeature
+* getNextFrame
+* getNextNumPyFrame
 * initialize
 * setPreviewSettings
 
@@ -97,6 +99,8 @@ Tips and Tricks, and Gotchas
 * This wrapper provides the following 'helper' functions that are not present in the native Pixelink API
     - getBytesPerPixel
     - imageSize
+    - getNextNumPyFrame
+    - formatNumPyImage
 
 * Use of a mutable ctypes character buffer instance in getNextFrame and formatImage functions
     - Both getNextFrame and formatImage expect a data buffer argument being passed as a ctypes character buffer instance. 
