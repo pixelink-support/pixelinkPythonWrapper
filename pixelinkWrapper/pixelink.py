@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (c) 2020 Pixelink a Navitar company
+# Copyright (c) 2021 Pixelink a Navitar company
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -70,7 +70,7 @@ class PxLApi:
         _Api = WinDLL("PxLAPI40.dll")
 
         ## Verifies that the loaded Pixelink API version is supported
-        _minApiVersion = b"4.2.5.11" # minimum Pixelink API version supported
+        _minApiVersion = b"4.2.5.13" # minimum Pixelink API version supported
         # Finds Pixelink API full path
         _pxlApiPath = util.find_library("PxLAPI40.dll")
         _pxlApiList = _pxlApiPath.split("\\")
@@ -82,7 +82,7 @@ class PxLApi:
         # Checks if the loaded Pixelink API is supported
         if _minApiVersion > _curApiVersion:
             print("\nWARNING: Pixelink API Version %s detected. This Python wrapper was designed to\n" 
-                  "API Version 4.2.5.11 – upgrade to the latest Pixelink SDK for full functionality and\n"
+                  "API Version 4.2.5.13 – upgrade to the latest Pixelink SDK for full functionality and\n"
                   "performance.\n" % str(_curApiVersion, encoding='utf-8'))
 
     else: # on Linux
@@ -90,17 +90,17 @@ class PxLApi:
         _Api = CDLL('libPxLApi.so')
 
         ## Verifies that the loaded Pixelink API version is supported
-        _minApiVersion = b"4.2.2.3" # minimum Pixelink API version supported
-        # Searches for installed Pixelink API file and its full path from $PIXELINK_SDK_LIB
-        _pxlApiSearch = "find $PIXELINK_SDK_LIB -name 'libPxLApi.so.*'"
+        _minApiVersion = b"4.2.2.5" # minimum Pixelink API version supported
+        # Searches for installed Pixelink API or Pixelink API Lite file and its full path from $PIXELINK_SDK_LIB
+        _pxlApiSearch = "find $PIXELINK_SDK_LIB -name 'libPxLApi*.so.*'"
         _pxlApiPath = subprocess.check_output(_pxlApiSearch, shell=True).strip()
         # Finds current version of Pixelink API
         _pxlApiList = _pxlApiPath.split(b"/")
-        _curApiVersion = _pxlApiList[len(_pxlApiList)-1].strip(b"libPxLApi.so.")
+        _curApiVersion = _pxlApiList[len(_pxlApiList)-1].replace(b"libPxLApi.so.", b"").replace(b"libPxLApiLite.so.", b"")
         # Checks if the loaded Pixelink API is supported
         if _minApiVersion > _curApiVersion:
             print("\nWARNING: Pixelink API Version %s detected. This Python wrapper was designed to\n" 
-                  "API Version 4.2.2.3 – upgrade to the latest Linux SDK for full functionality and performance.\n"
+                  "API Version 4.2.2.5 – upgrade to the latest Linux SDK for full functionality and performance.\n"
                   % str(_curApiVersion, encoding='utf-8'))
 
     """
@@ -628,6 +628,7 @@ class PxLApi:
         ApiGpiOnlyError = -1879048147                           # 0x9000_002D
         ApiGpoOnlyError = -1879048146                           # 0x9000_002E
         ApiInvokedFromIncorrectThreadError = -1879048145        # 0x9000_002F
+        ApiNotSupportedOnLiteVersion = -1879048144              # 0x9000_0030
 
     """
     The following Pixelink API classes represent wrapped structures.
@@ -1011,6 +1012,23 @@ class PxLApi:
             return (rc,)
         return (rc, ctbDstImage)
 
+    def formatNumPyImage(srcImage, srcFrameDesc, outputFormat):
+        """
+        formatNumImage, is very similar to formatImage, but it accepts a NumPy 2D array as
+        the input image buffer.
+
+        See getNumPySnapshot.py sample as an example on how to use this function.
+        """
+        ctBufferSize = c_uint(0)
+        rc = PxLApi._Api.PxLFormatImage(srcImage.ctypes.data_as(c_void_p), byref(srcFrameDesc), outputFormat, None, byref(ctBufferSize))
+        if(not(PxLApi.apiSuccess(rc))):
+            return (rc,)
+        ctbDstImage = create_string_buffer(ctBufferSize.value)
+        rc = PxLApi._Api.PxLFormatImage(srcImage.ctypes.data_as(c_void_p), byref(srcFrameDesc), outputFormat, byref(ctbDstImage), byref(ctBufferSize))
+        if(not(PxLApi.apiSuccess(rc))):
+            return (rc,)
+        return (rc, ctbDstImage)
+
     def getActions(hCamera):
         ctScheduledTimestamps = c_double(0)
         ctNumberOfTimestamps = c_uint(0)
@@ -1161,8 +1179,7 @@ class PxLApi:
             params.append(ctaParams[i])
         return (rc, ctFlags.value, params)
 
-
-    def getNextFrame(hCamera, frame):
+    def getNextFrame(hCamera, frame=None):
         """
         getNextFrame expects a frame data buffer argument being passed as a mutable ctypes character buffer
         instance. Such mutable ctypes character buffer can be created using the ctypes.create_string_buffer() 
@@ -1170,20 +1187,40 @@ class PxLApi:
         can be further passed to the formatImage function.
         For example, see getSnapshot.py sample that uses both functions.
         """
+        ctFrameDesc = PxLApi._FrameDesc()
+        ctFrameDesc.uSize = sizeof(ctFrameDesc) # The API needs to know the version of descriptor
         if (None == frame or 0 == frame):
+            # Special case where the user doesn't want a frame with this call -- rather just (sw) triggers a frame for a callback
             ctBufferSize = -1
-            ctFrameDesc = PxLApi._FrameDesc()
-            ctFrameDesc.uSize = sizeof(ctFrameDesc)
-            rc = PxLApi._Api.PxLGetNextFrame(hCamera, ctBufferSize, frame, byref(ctFrameDesc))
+            rc = PxLApi._Api.PxLGetNextFrame(hCamera, ctBufferSize, 0, byref(ctFrameDesc))
             if(not(PxLApi.apiSuccess(rc))):
                 return (rc,)
-            return (rc, ctFrameDesc)
         else:
-            ctFrameDesc = PxLApi._FrameDesc()
-            ctFrameDesc.uSize = sizeof(ctFrameDesc)
             ctBufferSize = len(frame)
             rc = PxLApi._Api.PxLGetNextFrame(hCamera, ctBufferSize, byref(frame), byref(ctFrameDesc))
             if(not(PxLApi.apiSuccess(rc))):
+                return (rc,)
+        return (rc, ctFrameDesc)
+    
+    def getNextNumPyFrame(hCamera, frame=None):
+        """
+        getNextNumPyFrame can be used to grab images from the camera, just like getNextFrame. However, 
+        getNextNumPyFrame will fill a (supplied) NumPy 2D array (mumy.ndarray) with the image data.
+        
+        For example, see getNumpySnapshot.py sample for an example on the use of this function.
+        """
+        ctFrameDesc = PxLApi._FrameDesc()
+        ctFrameDesc.uSize = sizeof(ctFrameDesc) # The API needs to know the version of descriptor
+        if (frame is None or (0 == frame.size)):
+            # Special case where the user doesn't want a frame with this call -- rather just (sw) triggers a frame for a callback
+            ctBufferSize = -1
+            rc = PxLApi._Api.PxLGetNextFrame(hCamera, ctBufferSize, 0, byref(ctFrameDesc))
+            if(not(PxLApi.apiSuccess(rc))):
+                return (rc,)
+        else:
+            ctBufferSize = frame.size
+            rc = PxLApi._Api.PxLGetNextFrame(hCamera, ctBufferSize, frame.ctypes.data_as(c_void_p), byref(ctFrameDesc))
+            if (not(PxLApi.apiSuccess(rc))):
                 return (rc,)
         return (rc, ctFrameDesc)
     
@@ -1195,16 +1232,18 @@ class PxLApi:
             ret[1] - A list of PxLApi._CameraIdInfo(s), with an element for each camera found
         For example, see getNumberCameras.py sample that uses this function.
         """
+        cameraIdInfo = []
         ctNumberCameraIds = c_uint(0)
         rc = PxLApi._Api.PxLGetNumberCamerasEx(None, byref(ctNumberCameraIds))
         if(not(PxLApi.apiSuccess(rc))):
             return (rc,)
+        if(PxLApi.apiSuccess(rc) and ctNumberCameraIds.value == 0):
+            return (rc, cameraIdInfo)
         ctaCameraIdInfo = (PxLApi._CameraIdInfo * ctNumberCameraIds.value)()
         ctaCameraIdInfo[0].StructSize = sizeof(PxLApi._CameraIdInfo)
         rc = PxLApi._Api.PxLGetNumberCamerasEx(byref(ctaCameraIdInfo), byref(ctNumberCameraIds))
         if(not(PxLApi.apiSuccess(rc))):
             return (rc,)
-        cameraIdInfo = []
         for i in range(len(ctaCameraIdInfo)):
             cameraIdInfo.append(ctaCameraIdInfo[i])
         return (rc, cameraIdInfo)
@@ -1245,6 +1284,16 @@ class PxLApi:
         rc = PxLApi._Api.PxLLoadSettings(hCamera, channel)
         return (rc,)
 
+    def privateCmd(hCamera, buffer):
+        ctaBuffer = (c_uint * len(buffer))()
+        ctaBufferSize = sizeof(ctaBuffer)
+        for i in range(len(ctaBuffer)):
+            if i > (len(buffer)-1):
+                break
+            ctaBuffer[i] = buffer[i]
+        rc = PxLApi._Api.PxLPrivateCmd(hCamera, ctaBufferSize, byref(ctaBuffer))
+        return (rc,)
+    
     def removeDescriptor(hCamera, hDescriptor):
         rc = PxLApi._Api.PxLRemoveDescriptor(hCamera, hDescriptor)
         return (rc,)
