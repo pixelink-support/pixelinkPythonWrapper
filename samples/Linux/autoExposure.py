@@ -32,14 +32,17 @@ import time
 import tty
 import termios
 
-# Not sure what it is for
-def api_range_error(rc):
-    return rc == PxLApi.ReturnCode.ApiInvalidParameterError or rc == PxLApi.ReturnCode.ApiOutOfRangeError
 
-# One-time operation state
+# One-time operation states
 INACTIVE = 1    # A one-time operation is NOT in progress
 INPROGRESS = 2  # A one-time operation IS in progress
 STOPPING = 3    # A one-time operation IS in progress, but an abort request has been made.
+
+"""
+API range error
+"""
+def api_range_error(rc):
+    return rc == PxLApi.ReturnCode.ApiInvalidParameterError or rc == PxLApi.ReturnCode.ApiOutOfRangeError
 
 """
 Returns true if the camera supports one-time auto adjustment and continuous adjustment of the specified feature,
