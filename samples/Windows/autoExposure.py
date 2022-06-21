@@ -32,14 +32,17 @@ import time
 import ctypes.wintypes
 import msvcrt
 
-# Not sure what it is for
-def api_range_error(rc):
-    return rc == PxLApi.ReturnCode.ApiInvalidParameterError or rc == PxLApi.ReturnCode.ApiOutOfRangeError
 
-# One-time operation state
+# One-time operation states
 INACTIVE = 1    # A one-time operation is NOT in progress
 INPROGRESS = 2  # A one-time operation IS in progress
 STOPPING = 3    # A one-time operation IS in progress, but an abort request has been made.
+
+"""
+API range error
+"""
+def api_range_error(rc):
+    return rc == PxLApi.ReturnCode.ApiInvalidParameterError or rc == PxLApi.ReturnCode.ApiOutOfRangeError
 
 """
 Preview control thread function
@@ -236,7 +239,7 @@ def print_exposure(hCamera):
     params = ret[2]
     exposure = round(params[0]*1000, 3)
     
-    print("\rExposure: %i milliseconds, Adjustment type: %s" % (exposure, adjustmentType), end="")
+    print("\rExposure: %6.1f milliseconds, Adjustment type: %s" % (exposure, adjustmentType), end="")
 
 
 def main():
