@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (c) 2021 Pixelink a Navitar company
+# Copyright (c) 2022 Pixelink a Navitar company
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -53,10 +53,6 @@ class PxLApi:
     Dynamic link library loader
     The Pixelink 4.0 API library loaded will depend on the operating system
     """
-    class _PxlApiRegSettingError(Exception):
-        # Pixelink registry key is not present exception
-        pass
-
     if os.name == 'nt': # on Windows
         ## Queries Pixelink registry key
         _regApiCommand = ["REG", "QUERY", "HKEY_CURRENT_USER\\Software\\PixeLINK", "/ve"]
@@ -64,13 +60,15 @@ class PxLApi:
         _pipe.communicate()
         _regApiPresent = _pipe.returncode
         if 0 < _regApiPresent:
-            raise _PxlApiRegSettingError("The system was unable to find the required Pixelink registry setting")
+            print("\nWARNING: The system was unable to find the required Pixelink registry setting. This could\n"
+                  "be because the Pixelink software was installed by a different (administrative) user, in which\n"
+                  "case you would not have access to versioning information.")
         
         ## Loads Pixelink API library
         _Api = WinDLL("PxLAPI40.dll")
 
         ## Verifies that the loaded Pixelink API version is supported
-        _minApiVersion = b"4.2.5.13" # minimum Pixelink API version supported
+        _minApiVersion = b"4.2.5.22" # minimum Pixelink API version supported
         # Finds Pixelink API full path
         _pxlApiPath = util.find_library("PxLAPI40.dll")
         _pxlApiList = _pxlApiPath.split("\\")
@@ -82,7 +80,7 @@ class PxLApi:
         # Checks if the loaded Pixelink API is supported
         if _minApiVersion > _curApiVersion:
             print("\nWARNING: Pixelink API Version %s detected. This Python wrapper was designed to\n" 
-                  "API Version 4.2.5.13 – upgrade to the latest Pixelink SDK for full functionality and\n"
+                  "API Version 4.2.5.22 – upgrade to the latest Pixelink SDK for full functionality and\n"
                   "performance.\n" % str(_curApiVersion, encoding='utf-8'))
 
     else: # on Linux
@@ -164,7 +162,9 @@ class PxLApi:
         POLAR_WEIGHTINGS = 39
         POLAR_HSV_INTERPRETATION = 40
         PTP = 41
-        TOTAL = 42
+        PRECISION_TIME_PROTOCOL = 41
+        LIGHTING = 42
+        TOTAL = 43
 
     class FeatureFlags:
         PRESENCE = 1
@@ -242,6 +242,10 @@ class PxLApi:
         HSV4_12 = 33	
         BGR24 = 34 # generic alias for BGR24_NON_DIB format
         BGR24_NON_DIB = 34
+        RGBA = 35
+        BGRA = 36
+        ARGB = 37
+        ABGR = 38
     
     class StreamState:
         START = 0
@@ -475,6 +479,13 @@ class PxLApi:
         UNCALIBRATED = 8
         SLAVE = 9
 
+    class LightingParams:
+        BRIGHTNESS = 0
+        CURRENT = 1
+        VOLTAGE = 2
+        TEMPERATURE = 3
+        NUM_PARAMS = 4
+
     class ColorFilterArray:
         CFA_NONE = 0
         CFA_RGGB = 1
@@ -513,7 +524,8 @@ class PxLApi:
         SYNCHRONIZED_TO_MASTER = 7
         UNSYNCHRONIZED_FROM_MASTER = 8
         FRAMES_SKIPPED = 9
-        LAST = 9
+        SENSOR_SYNCHRONIZED = 10
+        LAST = 10
 
     class ActionTypes:
         FRAME_TRIGGER = 0
@@ -521,6 +533,8 @@ class PxLApi:
         GPO2 = 2
         GPO3 = 3
         GPO4 = 4
+        SENSOR_SYNC = 5
+        LAST = 5
 
     """
     The following preview window defines are used on Windows, but not on Linux
@@ -544,91 +558,99 @@ class PxLApi:
     in PixeLINKCodes.h.
     """ 
     class ReturnCode:
-        ApiSuccess = 0                                          # 0x0000_0000
-        ApiSuccessParametersChanged = 1                         # 0x0000_0001
-        ApiSuccessAlreadyRunning = 2                            # 0x0000_0002
-        ApiSuccessLowMemory = 3                                 # 0x0000_0003
-        ApiSuccessParameterWarning = 4                          # 0x0000_0004
-        ApiSuccessReducedSpeedWarning = 5                       # 0x0000_0005
-        ApiSuccessExposureAdjustmentMade = 6                    # 0x0000_0006
-        ApiSuccessWhiteBalanceTooDark = 7                       # 0x0000_0007
-        ApiSuccessWhiteBalanceTooBright = 8                     # 0x0000_0008
-        ApiSuccessWithFrameLoss = 9                             # 0x0000_0009
-        ApiSuccessGainIneffectiveWarning = 10                   # 0x0000_000A
-        ApiSuccessSuspectedFirewallBlockWarning = 11            # 0x0000_000B
-        ApiUnknownError = -2147483647                           # 0x8000_0001
-        ApiInvalidHandleError = -2147483646                     # 0x8000_0002
-        ApiInvalidParameterError = -2147483645                  # 0x8000_0003
-        ApiBufferTooSmall = -2147483644                         # 0x8000_0004
-        ApiInvalidFunctionCallError = -2147483643               # 0x8000_0005
-        ApiNotSupportedError = -2147483642                      # 0x8000_0006
-        ApiCameraInUseError = -2147483641                       # 0x8000_0007
-        ApiNoCameraError = -2147483640                          # 0x8000_0008
-        ApiHardwareError = -2147483639                          # 0x8000_0009
-        ApiCameraUnknownError = -2147483638                     # 0x8000_000A
-        ApiOutOfBandwidthError = -2147483637                    # 0x8000_000B
-        ApiOutOfMemoryError = -2147483636                       # 0x8000_000C
-        ApiOSVersionError = -2147483635                         # 0x8000_000D
-        ApiNoSerialNumberError = -2147483634                    # 0x8000_000E
-        ApiInvalidSerialNumberError = -2147483633               # 0x8000_000F
-        ApiDiskFullError = -2147483632                          # 0x8000_0010
-        ApiIOError = -2147483631                                # 0x8000_0011
-        ApiStreamStopped = -2147483630                          # 0x8000_0012
-        ApiNullPointerError = -2147483629                       # 0x8000_0013
-        ApiCreatePreviewWndError = -2147483628                  # 0x8000_0014
-        ApiOutOfRangeError = -2147483626                        # 0x8000_0016
-        ApiNoCameraAvailableError = -2147483625                 # 0x8000_0017
-        ApiInvalidCameraName = -2147483624                      # 0x8000_0018
-        ApiGetNextFrameBusy = -2147483623                       # 0x8000_0019
-        ApiFrameInUseError = -2147483622                        # 0x8000_001A
-        ApiStreamExistingError = -1879048191                    # 0x9000_0001
-        ApiEnumDoneError = -1879048190                          # 0x9000_0002
-        ApiNotEnoughResourcesError = -1879048189                # 0x9000_0003
-        ApiBadFrameSizeError = -1879048188                      # 0x9000_0004
-        ApiNoStreamError = -1879048187                          # 0x9000_0005
-        ApiVersionError = -1879048186                           # 0x9000_0006
-        ApiNoDeviceError = -1879048185                          # 0x9000_0007
-        ApiCannotMapFrameError = -1879048184                    # 0x9000_0008
-        ApiLinkDriverError = -1879048183                        # 0x9000_0009
-        ApiInvalidIoctlParameter = -1879048182                  # 0x9000_000A
-        ApiInvalidOhciDriverError = -1879048181                 # 0x9000_000B
-        ApiCameraTimeoutError = -1879048180                     # 0x9000_000C
-        ApiInvalidFrameReceivedError = -1879048179              # 0x9000_000D
-        ApiOSServiceError = -1879048178                         # 0x9000_000E
-        ApiTimeoutError = -1879048177                           # 0x9000_000F
-        ApiRequiresControlAccess = -1879048176                  # 0x9000_0010
-        ApiGevInitializationError = -1879048175                 # 0x9000_0011
-        ApiIpServicesError = -1879048174                        # 0x9000_0012
-        ApiIpAddressingError = -1879048173                      # 0x9000_0013
-        ApiDriverCommunicationError = -1879048172               # 0x9000_0014
-        ApiInvalidXmlError = -1879048171                        # 0x9000_0015
-        ApiCameraRejectedValueError = -1879048170               # 0x9000_0016
-        ApiSuspectedFirewallBlockError = -1879048169            # 0x9000_0017
-        ApiIncorrectLinkSpeed = -1879048168                     # 0x9000_0018
-        ApiCameraNotReady = -1879048167                         # 0x9000_0019
-        ApiInconsistentConfiguration = -1879048166              # 0x9000_001A
-        ApiNotPermittedWhileStreaming = -1879048165             # 0x9000_001B
-        ApiOSAccessDeniedError = -1879048164                    # 0x9000_001C
-        ApiInvalidAutoRoiError = -1879048163                    # 0x9000_001D
-        ApiGpiHardwareTriggerConflict = -1879048162             # 0x9000_001E
-        ApiGpioConfigurationError = -1879048161                 # 0x9000_001F
-        ApiUnsupportedPixelFormatError = -1879048160            # 0x9000_0020
-        ApiUnsupportedClipEncoding = -1879048159                # 0x9000_0021
-        ApiH264EncodingError = -1879048158                      # 0x9000_0022
-        ApiH264FrameTooLargeError = -1879048157                 # 0x9000_0023
-        ApiH264InsufficientDataError = -1879048156              # 0x9000_0024
-        ApiNoControllerError = -1879048155                      # 0x9000_0025
-        ApiControllerAlreadyAssignedError = -1879048154         # 0x9000_0026
-        ApiControllerInaccessibleError = -1879048153            # 0x9000_0027
-        ApiControllerCommunicationError = -1879048152           # 0x9000_0028
-        ApiControllerTimeoutError = -1879048151                 # 0x9000_0029
-        ApiBufferTooSmallForInterleavedError = -1879048150      # 0x9000_002A
-        ApiThisEventNotSupported = -1879048149                  # 0x9000_002B
-        ApiFeatureConflictError = -1879048148                   # 0x9000_002C
-        ApiGpiOnlyError = -1879048147                           # 0x9000_002D
-        ApiGpoOnlyError = -1879048146                           # 0x9000_002E
-        ApiInvokedFromIncorrectThreadError = -1879048145        # 0x9000_002F
-        ApiNotSupportedOnLiteVersion = -1879048144              # 0x9000_0030
+        ApiSuccess = 0                                                  # 0x0000_0000
+        ApiSuccessParametersChanged = 1                                 # 0x0000_0001
+        ApiSuccessAlreadyRunning = 2                                    # 0x0000_0002
+        ApiSuccessLowMemory = 3                                         # 0x0000_0003
+        ApiSuccessParameterWarning = 4                                  # 0x0000_0004
+        ApiSuccessReducedSpeedWarning = 5                               # 0x0000_0005
+        ApiSuccessExposureAdjustmentMade = 6                            # 0x0000_0006
+        ApiSuccessWhiteBalanceTooDark = 7                               # 0x0000_0007
+        ApiSuccessWhiteBalanceTooBright = 8                             # 0x0000_0008
+        ApiSuccessWithFrameLoss = 9                                     # 0x0000_0009
+        ApiSuccessGainIneffectiveWarning = 10                           # 0x0000_000A
+        ApiSuccessSuspectedFirewallBlockWarning = 11                    # 0x0000_000B
+        ApiSuccessApiLiteWarning = 12                                   # 0x0000_000C
+        ApiSuccessSerialPortScanSuppressedWarning = 13                  # 0x0000_000D
+        ApiSuccessSensorsCannotSyncWhileStreaming = 14                  # 0x0000_000E
+        ApiUnknownError = -2147483647                                   # 0x8000_0001
+        ApiInvalidHandleError = -2147483646                             # 0x8000_0002
+        ApiInvalidParameterError = -2147483645                          # 0x8000_0003
+        ApiBufferTooSmall = -2147483644                                 # 0x8000_0004
+        ApiInvalidFunctionCallError = -2147483643                       # 0x8000_0005
+        ApiNotSupportedError = -2147483642                              # 0x8000_0006
+        ApiCameraInUseError = -2147483641                               # 0x8000_0007
+        ApiNoCameraError = -2147483640                                  # 0x8000_0008
+        ApiHardwareError = -2147483639                                  # 0x8000_0009
+        ApiCameraUnknownError = -2147483638                             # 0x8000_000A
+        ApiOutOfBandwidthError = -2147483637                            # 0x8000_000B
+        ApiOutOfMemoryError = -2147483636                               # 0x8000_000C
+        ApiOSVersionError = -2147483635                                 # 0x8000_000D
+        ApiNoSerialNumberError = -2147483634                            # 0x8000_000E
+        ApiInvalidSerialNumberError = -2147483633                       # 0x8000_000F
+        ApiDiskFullError = -2147483632                                  # 0x8000_0010
+        ApiIOError = -2147483631                                        # 0x8000_0011
+        ApiStreamStopped = -2147483630                                  # 0x8000_0012
+        ApiNullPointerError = -2147483629                               # 0x8000_0013
+        ApiCreatePreviewWndError = -2147483628                          # 0x8000_0014
+        ApiOutOfRangeError = -2147483626                                # 0x8000_0016
+        ApiNoCameraAvailableError = -2147483625                         # 0x8000_0017
+        ApiInvalidCameraName = -2147483624                              # 0x8000_0018
+        ApiGetNextFrameBusy = -2147483623                               # 0x8000_0019
+        ApiFrameInUseError = -2147483622                                # 0x8000_001A
+        ApiStreamExistingError = -1879048191                            # 0x9000_0001
+        ApiEnumDoneError = -1879048190                                  # 0x9000_0002
+        ApiNotEnoughResourcesError = -1879048189                        # 0x9000_0003
+        ApiBadFrameSizeError = -1879048188                              # 0x9000_0004
+        ApiNoStreamError = -1879048187                                  # 0x9000_0005
+        ApiVersionError = -1879048186                                   # 0x9000_0006
+        ApiNoDeviceError = -1879048185                                  # 0x9000_0007
+        ApiCannotMapFrameError = -1879048184                            # 0x9000_0008
+        ApiLinkDriverError = -1879048183                                # 0x9000_0009
+        ApiInvalidIoctlParameter = -1879048182                          # 0x9000_000A
+        ApiInvalidOhciDriverError = -1879048181                         # 0x9000_000B
+        ApiCameraTimeoutError = -1879048180                             # 0x9000_000C
+        ApiInvalidFrameReceivedError = -1879048179                      # 0x9000_000D
+        ApiOSServiceError = -1879048178                                 # 0x9000_000E
+        ApiTimeoutError = -1879048177                                   # 0x9000_000F
+        ApiRequiresControlAccess = -1879048176                          # 0x9000_0010
+        ApiGevInitializationError = -1879048175                         # 0x9000_0011
+        ApiIpServicesError = -1879048174                                # 0x9000_0012
+        ApiIpAddressingError = -1879048173                              # 0x9000_0013
+        ApiDriverCommunicationError = -1879048172                       # 0x9000_0014
+        ApiInvalidXmlError = -1879048171                                # 0x9000_0015
+        ApiCameraRejectedValueError = -1879048170                       # 0x9000_0016
+        ApiSuspectedFirewallBlockError = -1879048169                    # 0x9000_0017
+        ApiIncorrectLinkSpeed = -1879048168                             # 0x9000_0018
+        ApiCameraNotReady = -1879048167                                 # 0x9000_0019
+        ApiInconsistentConfiguration = -1879048166                      # 0x9000_001A
+        ApiNotPermittedWhileStreaming = -1879048165                     # 0x9000_001B
+        ApiOSAccessDeniedError = -1879048164                            # 0x9000_001C
+        ApiInvalidAutoRoiError = -1879048163                            # 0x9000_001D
+        ApiGpiHardwareTriggerConflict = -1879048162                     # 0x9000_001E
+        ApiGpioConfigurationError = -1879048161                         # 0x9000_001F
+        ApiUnsupportedPixelFormatError = -1879048160                    # 0x9000_0020
+        ApiUnsupportedClipEncoding = -1879048159                        # 0x9000_0021
+        ApiVideoEncodingError = -1879048158                             # 0x9000_0022
+        ApiVideoFrameTooLargeError = -1879048157                        # 0x9000_0023
+        ApiVideoInsufficientDataError = -1879048156                     # 0x9000_0024
+        ApiNoControllerError = -1879048155                              # 0x9000_0025
+        ApiControllerAlreadyAssignedError = -1879048154                 # 0x9000_0026
+        ApiControllerInaccessibleError = -1879048153                    # 0x9000_0027
+        ApiControllerCommunicationError = -1879048152                   # 0x9000_0028
+        ApiControllerTimeoutError = -1879048151                         # 0x9000_0029
+        ApiBufferTooSmallForInterleavedError = -1879048150              # 0x9000_002A
+        ApiThisEventNotSupported = -1879048149                          # 0x9000_002B
+        ApiFeatureConflictError = -1879048148                           # 0x9000_002C
+        ApiGpiOnlyError = -1879048147                                   # 0x9000_002D
+        ApiGpoOnlyError = -1879048146                                   # 0x9000_002E
+        ApiInvokedFromIncorrectThreadError = -1879048145                # 0x9000_002F
+        ApiNotSupportedOnLiteVersion = -1879048144                      # 0x9000_0030
+        ApiControllerDuplicateType = -1879048143                        # 0x9000_0031
+        ApiControllerDuplicateFeature = 1879048142                      # 0x9000_0032
+        ApiH264EncodingError = ApiVideoEncodingError
+        ApiH264FrameTooLargeError = ApiVideoFrameTooLargeError
+        ApiH264InsufficientDataError = ApiVideoInsufficientDataError
 
     """
     The following Pixelink API classes represent wrapped structures.
@@ -708,7 +730,7 @@ class PxLApi:
                     ("TypeMask", c_uint),
                     ("CameraSerialNumber", c_uint),
                     ("COMPort", c_char * 64),
-                    ("USBVitrualPort", c_uint),
+                    ("USBVirtualPort", c_uint),
                     ("VendorName", c_char * 64),
                     ("ModelName", c_char * 64),
                     ("Description", c_char * 256),
