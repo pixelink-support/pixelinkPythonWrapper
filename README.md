@@ -6,13 +6,13 @@ for Pixelink cameras using Python on Windows and Linux. As a wrapper around the 
 easy to use interface that promotes rapid development of custom applications for camera operations as the native API, but with
 Python’s concise and powerful scripting capabilities. This wrapper supports all Pixelink cameras that use and are compatible with
 the Pixelink 4.0 API (that is, FireWire, USB, USB3, GigE, and 10 GigE cameras). The wrapper fully supports functionality of the
-auto-focus, gain HDR, and polar cameras, as well as camera operation with Navitar zoom systems.
+auto-focus, gain HDR, and polar cameras, camera operation with Navitar zoom systems as well as Navitar Resolv LED controller.
 
 
 Tested Platforms
 ----------------
 
-* Windows 10 (64-bit) with Pixelink SDK v11.0
+* Windows 10 (64-bit) with Pixelink SDK v11.1
 * Linux Ubuntu 20.04 PC (x86 64-bit) with Linux SDK v3.2
 * Python 3.8.5 (64-bit)
 
