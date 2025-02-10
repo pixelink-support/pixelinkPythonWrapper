@@ -74,7 +74,7 @@ def main():
         params = ret[2]
         if not(flags & PxLApi.FeatureFlags.ONEPUSH):
             break
-        print("Interim balance --> R:%f, G%f, B%f" % (params[0], params[1], params[2]))
+        print("Interim balance --> R:%f, G:%f, B:%f" % (params[0], params[1], params[2]))
         time.sleep(1)
         waitedForSeconds = i
 
@@ -89,7 +89,7 @@ def main():
         print("Tired of waiting on the white balance, aborting it")
         abort_auto_white_balance(hCamera)
     else:
-        print("Final balance --> R:%f, G%f, B%f" % (params[0], params[1], params[2]))
+        print("Final balance --> R:%f, G:%f, B:%f" % (params[0], params[1], params[2]))
 
     # Step 6 - Cleanup
     PxLApi.uninitialize(hCamera)
