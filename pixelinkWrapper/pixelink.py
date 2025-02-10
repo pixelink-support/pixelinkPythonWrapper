@@ -1240,7 +1240,7 @@ class PxLApi:
             if(not(PxLApi.apiSuccess(rc))):
                 return (rc,)
         else:
-            ctBufferSize = frame.size
+            ctBufferSize = frame.size * frame.itemsize
             rc = PxLApi._Api.PxLGetNextFrame(hCamera, ctBufferSize, frame.ctypes.data_as(c_void_p), byref(ctFrameDesc))
             if (not(PxLApi.apiSuccess(rc))):
                 return (rc,)
