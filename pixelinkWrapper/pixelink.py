@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (c) 2022 Pixelink a Navitar company
+# Copyright (c) 2024 Pixelink an Ametek company
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -53,6 +53,15 @@ class PxLApi:
     Dynamic link library loader
     The Pixelink 4.0 API library loaded will depend on the operating system
     """
+    ## Checks if the loaded Pixelink API is supported
+    def _isApiSupported(minApiNumbers, curApiNumbers):
+        # Compares each number
+        for i in range(len(minApiNumbers)):
+            if int(minApiNumbers[i]) > int(curApiNumbers[i]):
+                return True
+        
+        return False
+    
     if os.name == 'nt': # on Windows
         ## Queries Pixelink registry key
         _regApiCommand = ["REG", "QUERY", "HKEY_CURRENT_USER\\Software\\PixeLINK", "/ve"]
@@ -68,7 +77,7 @@ class PxLApi:
         _Api = WinDLL("PxLAPI40.dll")
 
         ## Verifies that the loaded Pixelink API version is supported
-        _minApiVersion = b"4.2.5.22" # minimum Pixelink API version supported
+        _minApiVersion = "4.2.6.17" # minimum Pixelink API version supported
         # Finds Pixelink API full path
         _pxlApiPath = util.find_library("PxLAPI40.dll")
         _pxlApiList = _pxlApiPath.split("\\")
@@ -76,30 +85,32 @@ class PxLApi:
         _wmicApiPath = "name=\'" + "\\\\".join(_pxlApiList) + "\'" 
         _wmicCommand = ["wmic", "datafile", "where", _wmicApiPath, "get", "version"]
         # Queries installed Pixelink API file version 
-        _curApiVersion = subprocess.check_output(_wmicCommand).strip(b"Version \r\n")
+        _curApiVersion = subprocess.check_output(_wmicCommand)
+        _curApiVersion = str(_curApiVersion, "utf-8").strip("Version \r\n")
         # Checks if the loaded Pixelink API is supported
-        if _minApiVersion > _curApiVersion:
-            print("\nWARNING: Pixelink API Version %s detected. This Python wrapper was designed to\n" 
-                  "API Version 4.2.5.22 – upgrade to the latest Pixelink SDK for full functionality and\n"
-                  "performance.\n" % str(_curApiVersion, encoding='utf-8'))
+        if _isApiSupported(_minApiVersion.split("."), _curApiVersion.split(".")):
+            print("\nWARNING: Pixelink API Version {0} detected. This Python wrapper was designed to\n" 
+                  "API Version {1} – upgrade to the latest Pixelink SDK for full functionality and\n"
+                  "performance.\n".format(_curApiVersion, _minApiVersion))
 
     else: # on Linux
         ## Loads Pixelink API library
         _Api = CDLL('libPxLApi.so')
 
         ## Verifies that the loaded Pixelink API version is supported
-        _minApiVersion = b"4.2.2.5" # minimum Pixelink API version supported
+        _minApiVersion = "4.2.2.11" # minimum Pixelink API version supported
         # Searches for installed Pixelink API or Pixelink API Lite file and its full path from $PIXELINK_SDK_LIB
         _pxlApiSearch = "find $PIXELINK_SDK_LIB -name 'libPxLApi*.so.*'"
-        _pxlApiPath = subprocess.check_output(_pxlApiSearch, shell=True).strip()
+        _pxlApiPath = subprocess.check_output(_pxlApiSearch, shell=True)
+        _pxlApiPath = str(_pxlApiPath, "utf-8").strip()
         # Finds current version of Pixelink API
-        _pxlApiList = _pxlApiPath.split(b"/")
-        _curApiVersion = _pxlApiList[len(_pxlApiList)-1].replace(b"libPxLApi.so.", b"").replace(b"libPxLApiLite.so.", b"")
+        _pxlApiList = _pxlApiPath.split("/")
+        _curApiVersion = _pxlApiList[len(_pxlApiList)-1].replace("libPxLApi.so.", "").replace("libPxLApiLite.so.", "")
         # Checks if the loaded Pixelink API is supported
-        if _minApiVersion > _curApiVersion:
-            print("\nWARNING: Pixelink API Version %s detected. This Python wrapper was designed to\n" 
-                  "API Version 4.2.2.5 – upgrade to the latest Linux SDK for full functionality and performance.\n"
-                  % str(_curApiVersion, encoding='utf-8'))
+        if _isApiSupported(_minApiVersion.split("."), _curApiVersion.split(".")):
+            print("\nWARNING: Pixelink API Version {0} detected. This Python wrapper was designed to\n" 
+                  "API Version {1} – upgrade to the latest Linux SDK for full functionality and "
+                  "performance.\n".format(_curApiVersion, _minApiVersion))
 
     """
     Pixelink API class defines
@@ -117,6 +128,7 @@ class PxLApi:
     class FeatureId:
         ALL = -1
         BRIGHTNESS = 0
+        BLACK_LEVEL_OFFSET = 0
         PIXELINK_RESERVED_1 = 1
         SHARPNESS = 2
         COLOR_TEMP = 3
@@ -164,7 +176,8 @@ class PxLApi:
         PTP = 41
         PRECISION_TIME_PROTOCOL = 41
         LIGHTING = 42
-        TOTAL = 43
+        COMPRESSION = 43
+        TOTAL = 44
 
     class FeatureFlags:
         PRESENCE = 1
@@ -246,6 +259,11 @@ class PxLApi:
         BGRA = 36
         ARGB = 37
         ABGR = 38
+
+    class FrameBufferPolicy:
+        FBP_NEXT_AVAILABLE = 0
+        FBP_OLDEST_AVAILABLE = 1
+        FBP_DEFAULT = 0
     
     class StreamState:
         START = 0
@@ -270,7 +288,11 @@ class PxLApi:
         FREE_RUNNING = 0
         SOFTWARE = 1
         HARDWARE = 2
+        LINE1 = 2
         ACTION = 3
+        LINE2 = 4
+        LINE3 = 5
+        LINE4 = 6
 
     class Descriptors:
         MAX_STROBES = 16
@@ -295,7 +317,8 @@ class PxLApi:
         # FORMAT_IMAGE = 2 /*(Bugzilla 1776)*/
         FORMAT_CLIP = 4
         FRAME = 8
-        PREVIEW_RAW = 16
+        PREVIEW_RAW = 17
+        COMPRESSED_FRAME = 32
 
     class CameraPropertyFlags:
         MONITOR_ACCESS_ONLY = 1
@@ -354,6 +377,7 @@ class PxLApi:
         ACTION_STROBE = 6
         ACTION_NORMAL = 7
         ACTION_PULSE = 8
+        HARDWARE_TRIGGER = 9
 
     class GpioModeStrobe:
         DELAY = 3
@@ -486,6 +510,17 @@ class PxLApi:
         TEMPERATURE = 3
         NUM_PARAMS = 4
 
+    class CompressionParams:
+        PIXEL_FORMAT = 0
+        STRATEGY = 1
+
+    class CompressionStrategy:
+        NONE = 0
+        PIXELINK10 = 1
+
+    class CompressionDescSize:
+        PIXELINK10 = 40
+
     class ColorFilterArray:
         CFA_NONE = 0
         CFA_RGGB = 1
@@ -573,6 +608,8 @@ class PxLApi:
         ApiSuccessApiLiteWarning = 12                                   # 0x0000_000C
         ApiSuccessSerialPortScanSuppressedWarning = 13                  # 0x0000_000D
         ApiSuccessSensorsCannotSyncWhileStreaming = 14                  # 0x0000_000E
+        ApiFeatureDeprecatedWarning = 15                                # 0x0000_000F
+        ApiCompressionNotPossibleWarning = 16                           # 0x0000_0010
         ApiUnknownError = -2147483647                                   # 0x8000_0001
         ApiInvalidHandleError = -2147483646                             # 0x8000_0002
         ApiInvalidParameterError = -2147483645                          # 0x8000_0003
@@ -647,14 +684,19 @@ class PxLApi:
         ApiInvokedFromIncorrectThreadError = -1879048145                # 0x9000_002F
         ApiNotSupportedOnLiteVersion = -1879048144                      # 0x9000_0030
         ApiControllerDuplicateType = -1879048143                        # 0x9000_0031
-        ApiControllerDuplicateFeature = 1879048142                      # 0x9000_0032
+        ApiControllerDuplicateFeature = -1879048142                     # 0x9000_0032
+        ApiCompressionNotPossibleError = -1879048141                    # 0x9000_0033
+        ApiDecompressionNotPossibleError = -1879048140                  # 0x9000_0034
+        ApiNotSupportedIn32BitError = -1879048139                       # 0x9000_0035
+        ApiRequiresUncompressedFrameError = -1879048138                 # 0x9000_0036
+        ApiMemoryBufferAlignmentError = -1879048137                     # 0x9000_0037
         ApiH264EncodingError = ApiVideoEncodingError
         ApiH264FrameTooLargeError = ApiVideoFrameTooLargeError
         ApiH264InsufficientDataError = ApiVideoInsufficientDataError
 
     """
     The following Pixelink API classes represent wrapped structures.
-    Equivalent Pixelink 4.0 API structures and their additional information 
+    Equivalent Pixelink 4.0 API structures and their additional information
     can be found in PixeLINKTypes.h.
     """
     class _CameraFeatures(Structure):
@@ -735,12 +777,6 @@ class PxLApi:
                     ("ModelName", c_char * 64),
                     ("Description", c_char * 256),
                     ("FirmwareVersion", c_char * 64)]
-
-    class _ErrorReport(Structure):
-        _fields_ = [("uReturnCode", c_int),
-                    ("strFunctionName", c_char * 32),
-                    ("strReturnCode", c_char * 32),
-                    ("strReport", c_char * 256)]
 
     class _FrameDesc(Structure):
     
@@ -895,6 +931,10 @@ class PxLApi:
                         ("f135Weight", c_float),
                         ("uHSVInterpretation", c_uint)]
 
+        class CompressionInfo(Structure):
+            _fields_ = [("fCompressionStrategy", c_float),
+                        ("fCompressedSize", c_float)]
+
         _fields_ = [("uSize", c_uint),
                     ("fFrameTime", c_float),
                     ("uFrameNumber", c_uint),
@@ -939,7 +979,19 @@ class PxLApi:
                     ("SharpnessScoreParams", SharpnessScoreParams),
                     ("SharpnessScore", SharpnessScore),
                     ("HDRInfo", HDRInfo),
-                    ("PolarInfo", PolarInfo)]
+                    ("PolarInfo", PolarInfo),
+                    ("CompressionInfo", CompressionInfo)]
+
+    class _ErrorReport(Structure):
+        _fields_ = [("uReturnCode", c_int),
+                    ("strFunctionName", c_char * 32),
+                    ("strReturnCode", c_char * 32),
+                    ("strReport", c_char * 256)]
+
+    class CompressionInfoPixelink10(Structure):
+        _PIXELINK10_COMPRESSION_DESC_SIZE = 40
+        _fields_ = [("uCompressionStrategy", c_uint),
+                    ("CompressionDesc", c_ubyte * _PIXELINK10_COMPRESSION_DESC_SIZE)]
 
     class _IpAddress(Structure):
 
@@ -1001,12 +1053,56 @@ class PxLApi:
         rc = PxLApi._Api.PxLAssignController(hCamera, controllerSerialNumber)
         return (rc,)
 
+    """
+    createByteAlignedBuffer is often needed to create a byte-aligned buffer. Hence, it is added
+    for convenience.
+    There is no equivalent function in Pixelink 4.0 API.
+    For example, see getCompressedImage.py sample that uses this function.
+    """
+    def createByteAlignedBuffer(size, alingment):
+        alignmentOffset = 0
+        # Create a ctype array of the desired buffer size
+        ctypeArray = c_char * size
+
+        # Create oversized buffer and get its address
+        oversizedBuffer = create_string_buffer(size + alingment)
+        bufferAddress = addressof(oversizedBuffer)
+
+        # Calculate required offset for proper alignment, if it is not aligned
+        if addressof(oversizedBuffer) % alingment:
+            alignmentOffset = alingment - bufferAddress % alingment
+            # Create and return byte-aligned buffer
+            alignedBuffer = ctypeArray.from_buffer(oversizedBuffer, alignmentOffset)
+        else:
+            alignedBuffer = ctypeArray.from_buffer(oversizedBuffer)
+            
+        return alignedBuffer
+
     def createDescriptor(hCamera, updateMode):
         ctDescriptorHandle = c_void_p(None)
         rc = PxLApi._Api.PxLCreateDescriptor(hCamera, byref(ctDescriptorHandle), updateMode)
         if(not(PxLApi.apiSuccess(rc))):
             return (rc,)
         return (rc, ctDescriptorHandle.value)
+
+    def decompressFrame(srcFrame, srcFrameDesc, compressionDesc, destBuffer=None):
+        """
+		decompressFrame expects compressed frame and uncompressed frame data buffer arguments being passed as mutable 
+        ctypes character buffer instances. In addition, these buffers must be aligned on a 64-byte boundary. Such 
+        mutable ctypes character buffers can be created using the PxLApi.createByteAlignedBuffer() helper function.
+        The compression descriptor argument must also be passed as a mutable ctypes character buffer instance. Such
+        mutable ctypes character buffer can be created using the ctypes.create_string_buffer() function.
+		For example, see getCompressedImage.py sample that uses these functions.
+        """
+        ctBufferSize = c_uint(0)
+        if (None == destBuffer or 0 == destBuffer):
+            rc = PxLApi._Api.PxLDecompressFrame(byref(srcFrame), byref(srcFrameDesc), compressionDesc, None, byref(ctBufferSize))
+            if(not(PxLApi.apiSuccess(rc))):
+                return (rc,)
+            return (rc, ctBufferSize.value)
+        ctBufferSize.value = len(destBuffer)
+        rc = PxLApi._Api.PxLDecompressFrame(byref(srcFrame), byref(srcFrameDesc), compressionDesc, byref(destBuffer), byref(ctBufferSize))
+        return (rc,)
 
     def formatClip(inputFileName, outputFileName, inputFormat, outputFormat):
         ctaInputFileName = (c_char * len(inputFileName))()
@@ -1015,7 +1111,6 @@ class PxLApi:
         ctaOutputFileName.value = bytes(outputFileName, 'utf-8')
         rc = PxLApi._Api.PxLFormatClipEx(ctaInputFileName.value, ctaOutputFileName.value, inputFormat, outputFormat)
         return (rc,)
-
 
     def formatImage(srcImage, srcFrameDesc, outputFormat):
         """
@@ -1201,6 +1296,45 @@ class PxLApi:
             params.append(ctaParams[i])
         return (rc, ctFlags.value, params)
 
+    def getNextCompressedFrame(hCamera, frame, compressionDesc):
+        """
+        getNextCompressedFrame expects a frame data buffer and a compression descriptor arguments being passed 
+        as mutable ctypes character buffer instances. Such mutable ctypes character buffers can be created using 
+        the ctypes.create_string_buffer() function. When this function gets returned with the success code, these 
+        buffers hold frame and compression descriptor data that can be further passed to the decompressFrame function.
+
+        Also, like all pixelinkWrapper functions, getNextCompressedFrame returns a tuple with number of elements. 
+        More specifically, getNextCompressedFrame returns:
+            ret[0] - Return code
+            ret[1] - Frame descriptor
+            ret[2] - Number of bytes in a compression descriptor
+
+        For example, see getCompressedImage.py sample that uses both functions.
+        """
+        ctFrameDesc = PxLApi._FrameDesc()
+        ctFrameDesc.uSize = sizeof(ctFrameDesc) # The API needs to know the version of descriptor
+        ctCompressionDescSize = c_uint(0)
+        if (None == frame or 0 == frame):
+            # Special case where the user doesn't want a frame with this call -- rather just (sw) triggers a frame for a callback
+            ctBufferSize = -1
+            ctCompressionDescSize = c_uint(len(compressionDesc))
+            rc = PxLApi._Api.PxLGetNextCompressedFrame(hCamera, ctBufferSize, 0, byref(ctFrameDesc), byref(compressionDesc), byref(ctCompressionDescSize))
+            if(not(PxLApi.apiSuccess(rc))):
+                return (rc,)
+        elif (None == compressionDesc or 0 == compressionDesc):
+            # Returns the required compression descriptor size in compressionDescSize.
+            ctBufferSize = len(frame)
+            rc = PxLApi._Api.PxLGetNextCompressedFrame(hCamera, ctBufferSize, byref(frame), byref(ctFrameDesc), 0, byref(ctCompressionDescSize))
+            if(not(PxLApi.apiSuccess(rc))):
+                return (rc,)
+        else:
+            ctBufferSize = len(frame)
+            ctCompressionDescSize = c_uint(len(compressionDesc))
+            rc = PxLApi._Api.PxLGetNextCompressedFrame(hCamera, ctBufferSize, byref(frame), byref(ctFrameDesc), byref(compressionDesc), byref(ctCompressionDescSize))
+            if(not(PxLApi.apiSuccess(rc))):
+                return (rc,)
+        return (rc, ctFrameDesc, ctCompressionDescSize.value)
+
     def getNextFrame(hCamera, frame=None):
         """
         getNextFrame expects a frame data buffer argument being passed as a mutable ctypes character buffer
@@ -1227,7 +1361,7 @@ class PxLApi:
     def getNextNumPyFrame(hCamera, frame=None):
         """
         getNextNumPyFrame can be used to grab images from the camera, just like getNextFrame. However, 
-        getNextNumPyFrame will fill a (supplied) NumPy 2D array (mumy.ndarray) with the image data.
+        getNextNumPyFrame will fill a (supplied) NumPy 2D array (numpy.ndarray) with the image data.
         
         For example, see getNumpySnapshot.py sample for an example on the use of this function.
         """
@@ -1242,7 +1376,7 @@ class PxLApi:
         else:
             ctBufferSize = frame.size
             rc = PxLApi._Api.PxLGetNextFrame(hCamera, ctBufferSize, frame.ctypes.data_as(c_void_p), byref(ctFrameDesc))
-            if (not(PxLApi.apiSuccess(rc))):
+            if(not(PxLApi.apiSuccess(rc))):
                 return (rc,)
         return (rc, ctFrameDesc)
     
@@ -1273,7 +1407,7 @@ class PxLApi:
     def getNumberControllers():
         ctControllerInfo = PxLApi._ControllerInfo()
         ctInformationSize = sizeof(ctControllerInfo)
-        ctNumberControllerInfos = c_uint(0)            
+        ctNumberControllerInfos = c_uint(0)
         rc = PxLApi._Api.PxLGetNumberControllers(None, ctInformationSize, byref(ctNumberControllerInfos))
         if(not(PxLApi.apiSuccess(rc))):
             return (rc,)
@@ -1285,6 +1419,14 @@ class PxLApi:
         for i in range(len(ctaControllerInfo)):
             controllerInfo.append(ctaControllerInfo[i])
         return (rc, controllerInfo)
+
+    def getStreamState(hCamera):
+        ctStreamState = c_uint(0)
+        ctNumberFrameBuffers = c_uint(0)
+        rc = PxLApi._Api.PxLGetStreamState(hCamera, byref(ctStreamState), byref(ctNumberFrameBuffers))
+        if(not(PxLApi.apiSuccess(rc))):
+            return (rc,)
+        return (rc, ctStreamState.value, ctNumberFrameBuffers.value)
 
     """
     imageSize is often needed to determine the frame size. Hence, it is added for convenience.
@@ -1333,7 +1475,11 @@ class PxLApi:
         rc = PxLApi._Api.PxLSetActions(actionType, ctScheduledTimestamps)
         return (rc,)
     
-    def setCallback(hCamera, callbackType, context, dataProcessFunction):        
+    def setCallback(hCamera, callbackType, context, dataProcessFunction):
+
+        if callbackType == PxLApi.Callback.COMPRESSED_FRAME:
+            context = pointer(context)
+
         _ctPxLSetCallback = PxLApi._Api.PxLSetCallback
         if 0 == dataProcessFunction or None == dataProcessFunction:
             _ctPxLSetCallback.argtypes = c_uint, c_uint, c_void_p, c_uint
@@ -1395,6 +1541,10 @@ class PxLApi:
                 break
             ctaParams[i] = params[i]
         rc = PxLApi._Api.PxLSetFeature(hCamera, featureId, flags, ctNumParams, byref(ctaParams))
+        return (rc,)
+
+    def setFrameBufferPolicy(hCamera, nonTriggeredFrames, triggeredFrames, totalFrameBufferSizeInMs):
+        rc = PxLApi._Api.PxLSetFrameBufferPolicy(hCamera, nonTriggeredFrames, triggeredFrames, totalFrameBufferSizeInMs)
         return (rc,)
 
     def setPreviewSettings(hCamera, title="Pixelink Preview", style=WindowsPreview.WS_OVERLAPPEDWINDOW|WindowsPreview.WS_VISIBLE, 
