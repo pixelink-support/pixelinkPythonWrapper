@@ -40,7 +40,7 @@ def main():
     cameraSubnetMask =	   (255, 255, 255, 0)
     cameraDefaultGateway = (222, 1, 1, 1)
     addressIsPersistent =  False
-	# *******************   NOTE: Assign your values here  *******************
+    # *******************   NOTE: Assign your values here  *******************
 
     # Remove this after you've set up your own appropriate values above.
     print("This demonstration application has not been configured for your local environment\nSee the notes in setIpAddress.py for more information.")
