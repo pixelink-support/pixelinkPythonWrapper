@@ -12,9 +12,9 @@ auto-focus, gain HDR, and polar cameras, camera operation with Navitar zoom syst
 Tested Platforms
 ----------------
 
-* Windows 10 (64-bit) with Pixelink SDK v11.1
-* Linux Ubuntu 20.04 PC (x86 64-bit) with Linux SDK v3.2
-* Python 3.8.5 (64-bit)
+* Windows 10 (64-bit) with Pixelink SDK v12.0.1
+* Linux Ubuntu 24.04 PC (x86 64-bit) with Linux SDK v3.5
+* Python 3.8.6 (64-bit)
 
 
 Installation
@@ -30,12 +30,12 @@ the pixelinkWrapper, or need to install the pixelinkWrapper without online conne
 The Pixelink Python wrapper is installed as follows (new installation):
 
 On Windows:
-1. Open https://pixelink.com/products/software/
+1. Open https://www.navitar.com/products/pixelink-cameras
 2. Download and install Pixelink Capture or Pixelink SDK
 3. Run "pip install pixelinkWrapper"
 
 On Linux:
-1. Open https://pixelink.com/products/software/sdk/
+1. Open https://www.navitar.com/products/pixelink-cameras/pixelink-sdk
 2. Download and install Linux SDK
 3. Run "sudo apt install python3-pip" to install pip3, if it is not installed
 4. Run "pip3 install pixelinkWrapper"
@@ -68,6 +68,7 @@ with respect to their functionality in the pixelink module.
 
 Many of the functions accept parameters with assigned arguments. However, several functions have parameter(s) set with default 
 value(s). They are
+* decompressFrame
 * getFeature
 * getNextFrame
 * getNextNumPyFrame
@@ -83,6 +84,9 @@ Tips and Tricks, and Gotchas
 
 * The Callback.FORMAT_IMAGE is not supported.
 
+* The context of the setCallback function for Callback.COMPRESSED_FRAME must be set with a compression strategy
+  (e.g. PxLApi.CompressionInfoPixelink10).
+
 * The Settings.SETTINGS_FACTORY define can be used instead of the DefaultMemoryChannel.FACTORY_DEFAULTS_MEMORY_CHANNEL.
 
 * Preview window
@@ -97,16 +101,28 @@ Tips and Tricks, and Gotchas
       error checking should be done within the callback routine itself.
 
 * This wrapper provides the following 'helper' functions that are not present in the native Pixelink API
+    - createByteAlignedBuffer
     - getBytesPerPixel
     - imageSize
     - getNextNumPyFrame
     - formatNumPyImage
 
-* Use of a mutable ctypes character buffer instance in getNextFrame and formatImage functions
-    - Both getNextFrame and formatImage expect a data buffer argument being passed as a ctypes character buffer instance. 
-      Such mutable character buffer instance can be created using the ctypes.create_string_buffer() function. Using this
-      buffer type allows Python wrapper to maintain similar efficiency as the Pixelink 4.0 API. Furthermore, the same
-      data buffer instance can be passed from getNextFrame to formatImage function.
+* Use of a mutable ctypes character buffer instance in the following functions
+	- getNextFrame
+	- getNextCompressedFrame
+	- formatImage
+    - Note that the above functions expect a data buffer argument being passed as a ctypes character buffer instance. 
+	  Such mutable character buffer instance can be created using the ctypes.create_string_buffer() function. Using 
+	  this buffer type allows Python wrapper to maintain similar efficiency as the Pixelink 4.0 API. Furthermore, 
+	  the same data buffer instance can be passed from getNextFrame to formatImage and getNextCompressedFrame 
+	  to decompressFrame function.
+
+* Use of a mutable ctypes character buffer that must be aligned on a 64-byte boundary
+	- decompressFrame
+    - Note that the above function expects data buffer arguments being passed as ctypes character buffer instances. 
+	  In addition, those buffers must be aligned on a 64-byte boundary. Such mutable ctypes character buffers can be 
+      created using the PxLApi.createByteAlignedBuffer() helper function. Furthermore, one of those data buffer 
+      instances can be passed from getNextCompressedFrame to decompressFrame function.
 
 
 Code Samples
@@ -121,7 +137,7 @@ Getting Help from Pixelink Support
 Pixelink's goal is to make digital imaging simple. If you're having trouble with Pixelink Python wrapper, do not hesitate to 
 contact us!
 
-https://pixelink.com/support/contact-support/
+https://support.pixelink.com/support/tickets/new
 
 
 Links
@@ -129,5 +145,5 @@ Links
 
 * Repository: https://github.com/pixelink-support/pixelinkPythonWrapper
 * PyPi Location: https://pypi.org/project/pixelinkWrapper/
-* Pixelink Capture: https://pixelink.com/products/software/pixelink-capture-software/
-* Pixelink SDK or Linux SDK: https://pixelink.com/products/software/sdk/
+* Pixelink Capture: https://www.navitar.com/products/pixelink-cameras/pixelink-capture
+* Pixelink SDK or Linux SDK: https://www.navitar.com/products/pixelink-cameras/pixelink-sdk
