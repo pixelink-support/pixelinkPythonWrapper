@@ -1,10 +1,13 @@
 """
 gpio.py
 
-This demonstrates how to control a camera's general purpose input (gpi), and general purpose output (gpo).
+This demonstrates how to control a camera's general purpose input (GPI), and general purpose output (GPO).
 
-This program will setup the first GPIO as an 'input', and the second GPO as an 'output'. It will then
-poll the GPI value, reporting on the value on the console, and on the GPO.
+This sample works with all Firewire/USB/USB3/GigE/10GigE cameras, provided the camera has at least one GPI 
+and a GPO. It also interrogates the camera to determine the camera’s specific GPIO capability/properties.
+
+If the camera has at least one GPI and a GPO, they will be set. Then, the program will poll the GPI value, 
+reporting on the value on the console, and on the GPO.
 """
 
 from pixelinkWrapper import*
@@ -25,6 +28,8 @@ POLL_PERIOD_SEC = 0.5
 Returns true if the camera has a GPI and a GPO
 """
 def supports_gpio(hCamera):
+    # GPIO index supporting GPI
+    global gpiIndex
 
     # Step 1
     # Get info on the GPIO for this camera
@@ -41,16 +46,20 @@ def supports_gpio(hCamera):
         return False
     if gpioFeatureInfo.Features[0].Params[1].fMaxValue < PxLApi.GpioModes.INPUT:    # Does not support GPI !!
         return False
+    if gpioFeatureInfo.Features[0].Params[0].fMaxValue == 3.0:                      # For PL-X cameras
+        gpiIndex = 3.0
+    else:                                                                           # For PL-D and other cameras
+        gpiIndex = 1.0
     
     return True
 
 
 def setup_gpios(hCamera):
-
+    
     gpioParams = [0] * PxLApi.GpioParams.NUM_PARAMS
     # Step 1
-    # Setup GPIO #1 for input
-    gpioParams[PxLApi.GpioParams.INDEX] = 1.0 # The first GPIO
+    # Set the GPI
+    gpioParams[PxLApi.GpioParams.INDEX] = gpiIndex
     gpioParams[PxLApi.GpioParams.MODE] = PxLApi.GpioModes.INPUT
     gpioParams[PxLApi.GpioParams.POLARITY] = 0
     # Don't care about the other parameters
@@ -59,8 +68,8 @@ def setup_gpios(hCamera):
         return ret
 
     # Step 2
-    # Setup GPIO #2 for manual output
-    gpioParams[PxLApi.GpioParams.INDEX] = 2.0 # The first GPIO
+    # Set the GPO (to normal mode)
+    gpioParams[PxLApi.GpioParams.INDEX] = 2.0
     gpioParams[PxLApi.GpioParams.MODE] = PxLApi.GpioModes.NORMAL
     gpioParams[PxLApi.GpioParams.POLARITY] = 0
     # Don't care about the other parameters
@@ -83,7 +92,7 @@ def main():
     hCamera = ret[1]
 
     # Step 2
-    # Ensure the camera has at least 2 gpos, and supports a GPI (which is always the first GPIO)
+    # Ensure the camera has at least 2 gpios, and supports a GPI
     if not supports_gpio(hCamera):
         print("Camera does not support GPIO!")
         PxLApi.uninitialize(hCamera)
@@ -97,16 +106,16 @@ def main():
         PxLApi.uninitialize(hCamera)
         return 1
 
-    # give the last GPI a value that will ensure our loop will print/assert the GPO on its first time through
+    # Give the last GPI a value that will ensure our loop will print/assert the GPO on its first time through
     lastGpi = GPIO_ON
 
     # Step 4
-    # Poll the GPI (the first GPIO), reporting it's value on the console, and on the GPO (the second GPIO) 
+    # Poll the GPI, reporting it's value on the console, and on the GPO 
     print("Polling the GPI every %i ms, press any key to exit" % (POLL_PERIOD_SEC*1000))
     setUnbufKb(True)
     while not kbhit():
         # Read the GPI
-        gpioParams[PxLApi.GpioParams.INDEX] = 1.0
+        gpioParams[PxLApi.GpioParams.INDEX] = gpiIndex
         ret = PxLApi.getFeature(hCamera, PxLApi.FeatureId.GPIO, gpioParams)
         if not PxLApi.apiSuccess(ret[0]):
             print("\nCould not read the GPI! Rc = %i" % ret[0])
@@ -176,4 +185,5 @@ def kbhit():
 
 
 if __name__ == "__main__":
+    gpiIndex = 0.0          # GPIO index supporting GPI depending on the camera model
     main()

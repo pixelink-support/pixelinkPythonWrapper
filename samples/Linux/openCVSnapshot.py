@@ -105,7 +105,7 @@ def main():
         if PT_MONO == pixelType:
             ret = PxLApi.formatImage(rawFrame, frameDesc, PxLApi.ImageFormat.RAW_MONO8)
         else:
-            ret = PxLApi.formatImage(rawFrame, frameDesc, PxLApi.ImageFormat.RAW_RGB24)
+            ret = PxLApi.formatImage(rawFrame, frameDesc, PxLApi.ImageFormat.RAW_BGR24)
         if PxLApi.apiSuccess(ret[0]):
             formatedImage = ret[1]
             

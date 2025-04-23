@@ -58,9 +58,10 @@ N.B. This is called by the API on a thread created in the API.
 def callback_format_preview(hCamera, frameData, dataFormat, frameDesc, userData):
     # Copy frame descriptor information
     frameDescriptor = frameDesc.contents
-    # Find image size
-    imageSize = int(frameDescriptor.Roi.fWidth * frameDescriptor.Roi.fHeight *
-                    PxLApi.getBytesPerPixel(dataFormat))
+    # Find image dimensions
+    width = int(frameDescriptor.Roi.fWidth / frameDescriptor.PixelAddressingValue.fHorizontal)
+    height = int(frameDescriptor.Roi.fHeight / frameDescriptor.PixelAddressingValue.fVertical)
+    bytesPerPixel = PxLApi.getBytesPerPixel(dataFormat)
 
 
     print("callback_format_image: hCamera = {0}, frameData = {1}".format(hex(hCamera),
@@ -74,14 +75,12 @@ def callback_format_preview(hCamera, frameData, dataFormat, frameDesc, userData)
                                                                    hex(frameData[6]), hex(frameData[7])))
     
     # Just to see the effect of the callback, increase intensity of the middle to 100%
-    startRow = int((frameDescriptor.Roi.fHeight/5)*2)
-    endRow = int((frameDescriptor.Roi.fHeight/5)*3)
-    startCol = int((frameDescriptor.Roi.fWidth/5)*2)
-    endCol = int((frameDescriptor.Roi.fWidth/5)*3)
+    startRow = int((height/5)*2)
+    endRow = int((height/5)*3)
+    startCol = int((width/5)*2)
+    endCol = int((width/5)*3)
 
     # Find the first pixel that needs to be modified
-    bytesPerPixel = PxLApi.getBytesPerPixel(dataFormat)
-    
     for i in range(startRow, endRow):
         pixel = int(bytesPerPixel * ((startRow * frameDescriptor.Roi.fWidth) + startCol))
         for j in range(startCol, endCol):
