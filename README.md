@@ -12,9 +12,9 @@ auto-focus, gain HDR, and polar cameras, camera operation with Navitar zoom syst
 Tested Platforms
 ----------------
 
-* Windows 10 (64-bit) with Pixelink SDK v12.0.1
+* Windows 11 (64-bit) with Pixelink Software Suite v13.0.0
 * Linux Ubuntu 24.04 PC (x86 64-bit) with Linux SDK v3.5
-* Python 3.8.6 (64-bit)
+* Python 3.13.8 (64-bit)
 
 
 Installation
@@ -23,15 +23,15 @@ Installation
 The recommended procedure for installing the Pixelink Python wrapper package (pixelinkWrapper) is by using the pip(3) command,
 as detailed below. This command will install the latest pixelinkWrapper from this repository as maintained by Pixelink. 
 The Pixelink Python wrapper package (pixelinkWrapper) is also included in the Pixelink SDK as the local folder. It contains 
-the version of the pixelinkWrapper that was current as of the version of the Pixelink SDK release. Although that folder is not 
-necessary to install/use pixelinkWrapper, it is included as a convenience, should you need access to a non-current version of 
-the pixelinkWrapper, or need to install the pixelinkWrapper without online connectivity.
+the version of the pixelinkWrapper that was current as of the version of the Pixelink Software Suite release. Although that 
+folder is not necessary to install/use pixelinkWrapper, it is included as a convenience, should you need access to a non-current 
+version of the pixelinkWrapper, or need to install the pixelinkWrapper without online connectivity.
 
 The Pixelink Python wrapper is installed as follows (new installation):
 
 On Windows:
 1. Open https://www.navitar.com/products/pixelink-cameras
-2. Download and install Pixelink Capture or Pixelink SDK
+2. Download and install Pixelink Software Suite
 3. Run "pip install pixelinkWrapper"
 
 On Linux:
