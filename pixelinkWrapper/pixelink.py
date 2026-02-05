@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (c) 2024 Pixelink an Ametek company
+# Copyright (c) 2025 Pixelink an Ametek company
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -77,16 +77,15 @@ class PxLApi:
         _Api = WinDLL("PxLAPI40.dll")
 
         ## Verifies that the loaded Pixelink API version is supported
-        _minApiVersion = "4.2.6.17" # minimum Pixelink API version supported
+        _minApiVersion = "4.2.6.29" # minimum Pixelink API version supported
         # Finds Pixelink API full path
-        _pxlApiPath = util.find_library("PxLAPI40.dll")
-        _pxlApiList = _pxlApiPath.split("\\")
-        # Creates Pixelink API full path by making it compatible with wmci
-        _wmicApiPath = "name=\'" + "\\\\".join(_pxlApiList) + "\'" 
-        _wmicCommand = ["wmic", "datafile", "where", _wmicApiPath, "get", "version"]
-        # Queries installed Pixelink API file version 
-        _curApiVersion = subprocess.check_output(_wmicCommand)
-        _curApiVersion = str(_curApiVersion, "utf-8").strip("Version \r\n")
+        _pxlApiPath = util.find_library("PxLAPI40.dll").replace("\\", "\\\\")
+        # PowerShell query
+        _powerShellCommand = "Get-CimInstance -Query \"SELECT Version FROM CIM_DataFile WHERE Name='" + _pxlApiPath + "'\""
+        # Queries installed Pixelink API file version
+        _completedProcess = subprocess.run(["powershell", "-Command", _powerShellCommand], text=True, capture_output=True, check=True)
+        _curApiVersion = _completedProcess.stdout
+        _curApiVersion = _curApiVersion.split("Version")[1].replace("Writeable", "").replace(":", "").replace("\n", "").strip()
         # Checks if the loaded Pixelink API is supported
         if _isApiSupported(_minApiVersion.split("."), _curApiVersion.split(".")):
             print("\nWARNING: Pixelink API Version {0} detected. This Python wrapper was designed to\n" 
@@ -101,11 +100,11 @@ class PxLApi:
         _minApiVersion = "4.2.2.11" # minimum Pixelink API version supported
         # Searches for installed Pixelink API or Pixelink API Lite file and its full path from $PIXELINK_SDK_LIB
         _pxlApiSearch = "find $PIXELINK_SDK_LIB -name 'libPxLApi*.so.*'"
-        _pxlApiPath = subprocess.check_output(_pxlApiSearch, shell=True)
-        _pxlApiPath = str(_pxlApiPath, "utf-8").strip()
+        _completedProcess = subprocess.run(_pxlApiSearch, shell=True, text=True, capture_output=True, check=True)
+        _pxlApiPath = _completedProcess.stdout
         # Finds current version of Pixelink API
         _pxlApiList = _pxlApiPath.split("/")
-        _curApiVersion = _pxlApiList[len(_pxlApiList)-1].replace("libPxLApi.so.", "").replace("libPxLApiLite.so.", "")
+        _curApiVersion = _pxlApiList[len(_pxlApiList)-1].replace("libPxLApi.so.", "").replace("libPxLApiLite.so.", "").strip()
         # Checks if the loaded Pixelink API is supported
         if _isApiSupported(_minApiVersion.split("."), _curApiVersion.split(".")):
             print("\nWARNING: Pixelink API Version {0} detected. This Python wrapper was designed to\n" 
@@ -141,6 +140,7 @@ class PxLApi:
         GAIN = 8
         IRIS = 9
         FOCUS = 10
+        SENSOR_BOARD_TEMPERATURE = 11
         SENSOR_TEMPERATURE = 11
         TEMPERATURE = 11
         TRIGGER = 12
@@ -177,7 +177,9 @@ class PxLApi:
         PRECISION_TIME_PROTOCOL = 41
         LIGHTING = 42
         COMPRESSION = 43
-        TOTAL = 44
+        SENSOR_CHIP_TEMPERATURE = 44
+        SENSOR_CHIP_TARGET_TEMPERATURE = 45
+        TOTAL = 46
 
     class FeatureFlags:
         PRESENCE = 1
@@ -378,6 +380,8 @@ class PxLApi:
         ACTION_NORMAL = 7
         ACTION_PULSE = 8
         HARDWARE_TRIGGER = 9
+        MODE_3p3_VOLT_SUPPLY = 10 # 3.3 Volt power supply
+        MODE_5p0_VOLT_SUPPLY = 11 # 5.0 Volt power supply
 
     class GpioModeStrobe:
         DELAY = 3
@@ -520,6 +524,11 @@ class PxLApi:
 
     class CompressionDescSize:
         PIXELINK10 = 40
+
+    class FocusAutoParams:
+        LOWER_LIMIT = 0
+        UPPER_LIMIT = 1
+        LINEAR_STEP_SIZE = 2
 
     class ColorFilterArray:
         CFA_NONE = 0
@@ -984,8 +993,8 @@ class PxLApi:
 
     class _ErrorReport(Structure):
         _fields_ = [("uReturnCode", c_int),
-                    ("strFunctionName", c_char * 32),
-                    ("strReturnCode", c_char * 32),
+                    ("strFunctionName", c_char * 64),
+                    ("strReturnCode", c_char * 64),
                     ("strReport", c_char * 256)]
 
     class CompressionInfoPixelink10(Structure):
